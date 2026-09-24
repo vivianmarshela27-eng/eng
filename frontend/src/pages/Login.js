@@ -50,11 +50,8 @@ export default function Login() {
             "linear-gradient(to top, rgba(2,6,23,0.95), rgba(2,6,23,0.55)), url(https://images.unsplash.com/photo-1598299803204-b73796f43289?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200)",
         }}
       >
-        <div className="flex items-center gap-3 text-white">
-          <div className="w-12 h-12 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-2xl">
-            SE
-          </div>
-          <span className="font-heading font-extrabold text-2xl tracking-wide">SATRIA</span>
+        <div className="inline-flex bg-white rounded-2xl p-3 shadow-xl w-fit">
+          <img src="/logo.png" alt="Satria Engineering" className="h-16 w-auto object-contain" data-testid="login-logo" />
         </div>
         <div className="text-white max-w-md">
           <h2 className="font-heading text-4xl font-extrabold uppercase leading-tight tracking-tight">
@@ -70,11 +67,10 @@ export default function Login() {
       {/* Form side */}
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center gap-3 text-white mb-8 justify-center">
-            <div className="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-xl">
-              SE
+          <div className="lg:hidden flex items-center justify-center mb-8">
+            <div className="bg-white rounded-2xl p-3 shadow-xl">
+              <img src="/logo.png" alt="Satria Engineering" className="h-16 w-auto object-contain" data-testid="login-logo-mobile" />
             </div>
-            <span className="font-heading font-extrabold text-xl tracking-wide">SATRIA</span>
           </div>
 
           <h1 className="font-heading text-3xl font-extrabold uppercase text-white tracking-tight">

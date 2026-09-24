@@ -4,10 +4,39 @@ import { formatRupiah, formatDate } from "@/lib/format";
 
 const TYPE_LABEL = { preventif: "Pemeliharaan Preventif", perbaikan: "Perbaikan (Breakdown)" };
 
+let _logoPromise;
+function loadLogoDataUrl() {
+  if (!_logoPromise) {
+    _logoPromise = fetch("/logo.png")
+      .then((r) => r.blob())
+      .then((b) => new Promise((res) => {
+        const fr = new FileReader();
+        fr.onloadend = () => res(fr.result);
+        fr.onerror = () => res(null);
+        fr.readAsDataURL(b);
+      }))
+      .catch(() => null);
+  }
+  return _logoPromise;
+}
+
 // Berita Acara Pemeliharaan (BAP) for a single service record.
-export function generateServicePDF(sv, { isAdmin }) {
+export async function generateServicePDF(sv, { isAdmin }) {
   const doc = new jsPDF();
   const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
+
+  // Watermark logo (drawn first so content sits on top)
+  const logo = await loadLogoDataUrl();
+  if (logo) {
+    try {
+      const iw = 120, ih = 120;
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({ opacity: 0.06 }));
+      doc.addImage(logo, "PNG", (w - iw) / 2, (h - ih) / 2, iw, ih);
+      doc.restoreGraphicsState();
+    } catch (e) {}
+  }
 
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, w, 28, "F");
