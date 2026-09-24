@@ -35,12 +35,12 @@ export default function Login() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-white bg-no-repeat bg-center bg-[length:90%_auto] sm:bg-[length:560px_auto] lg:bg-[length:680px_auto]"
-      style={{ backgroundImage: "url('/login-bg.png')" }}
-      data-testid="login-page"
-    >
-      <div className="w-full max-w-md rounded-2xl bg-slate-950/45 backdrop-blur-2xl border border-white/15 shadow-2xl p-8 sm:p-10">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-slate-950" data-testid="login-page">
+      <div
+        className="relative w-full max-w-md rounded-2xl overflow-hidden border border-white/15 shadow-2xl bg-white bg-no-repeat bg-center bg-cover"
+        style={{ backgroundImage: "url('/login-bg.png')" }}
+      >
+        <div className="relative bg-slate-950/70 backdrop-blur-[2px] p-8 sm:p-10">
         <h1 className="font-heading text-3xl font-extrabold uppercase text-white tracking-tight">
           Masuk
         </h1>
@@ -99,6 +99,7 @@ export default function Login() {
             Masuk
           </Button>
         </form>
+        </div>
       </div>
     </div>
   );
