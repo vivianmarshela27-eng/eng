@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export default function Login() {
   const { login, user } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      await login(username, password);
       toast.success("Login berhasil");
       navigate("/dashboard", { replace: true });
     } catch (err) {
@@ -35,8 +35,8 @@ export default function Login() {
     }
   };
 
-  const quickFill = (em, pw) => {
-    setEmail(em);
+  const quickFill = (un, pw) => {
+    setUsername(un);
     setPassword(pw);
   };
 
@@ -52,9 +52,9 @@ export default function Login() {
       >
         <div className="flex items-center gap-3 text-white">
           <div className="w-12 h-12 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-2xl">
-            SM
+            SE
           </div>
-          <span className="font-heading font-extrabold text-2xl tracking-wide">SIMIN</span>
+          <span className="font-heading font-extrabold text-2xl tracking-wide">SATRIA</span>
         </div>
         <div className="text-white max-w-md">
           <h2 className="font-heading text-4xl font-extrabold uppercase leading-tight tracking-tight">
@@ -72,9 +72,9 @@ export default function Login() {
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-3 text-white mb-8 justify-center">
             <div className="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-xl">
-              SM
+              SE
             </div>
-            <span className="font-heading font-extrabold text-xl tracking-wide">SIMIN</span>
+            <span className="font-heading font-extrabold text-xl tracking-wide">SATRIA</span>
           </div>
 
           <h1 className="font-heading text-3xl font-extrabold uppercase text-white tracking-tight">
@@ -86,17 +86,17 @@ export default function Login() {
 
           <form onSubmit={submit} className="space-y-5">
             <div>
-              <Label htmlFor="email" className="text-slate-300">
-                Email
+              <Label htmlFor="username" className="text-slate-300">
+                Nama Pengguna
               </Label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@perusahaan.co.id"
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="admin"
                 required
-                data-testid="login-email-input"
+                data-testid="login-username-input"
                 className="mt-1.5 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 h-11"
               />
             </div>
@@ -143,7 +143,7 @@ export default function Login() {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => quickFill("vivianmarshela27@gmail.com", "Admin#2026")}
+                onClick={() => quickFill("admin", "Admin#2026")}
                 data-testid="quick-admin"
                 className="flex items-center gap-2 text-left p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
               >
@@ -155,7 +155,7 @@ export default function Login() {
               </button>
               <button
                 type="button"
-                onClick={() => quickFill("operator@simin.co.id", "Operator#2026")}
+                onClick={() => quickFill("operator", "Operator#2026")}
                 data-testid="quick-user"
                 className="flex items-center gap-2 text-left p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
               >

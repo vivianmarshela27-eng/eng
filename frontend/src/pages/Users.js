@@ -17,7 +17,7 @@ import {
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-const empty = { email: "", name: "", role: "user", password: "" };
+const empty = { username: "", name: "", role: "user", password: "" };
 
 export default function Users() {
   const { user } = useAuth();
@@ -31,7 +31,7 @@ export default function Users() {
   useEffect(() => { load(); }, []);
 
   const openNew = () => { setForm(empty); setEditId(null); setOpen(true); };
-  const openEdit = (u) => { setForm({ email: u.email, name: u.name, role: u.role, password: "" }); setEditId(u.id); setOpen(true); };
+  const openEdit = (u) => { setForm({ username: u.username, name: u.name, role: u.role, password: "" }); setEditId(u.id); setOpen(true); };
 
   const save = async () => {
     try {
@@ -67,7 +67,7 @@ export default function Users() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nama</TableHead>
-                <TableHead>Email</TableHead>
+                <TableHead>Nama Pengguna</TableHead>
                 <TableHead>Peran</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
@@ -76,7 +76,7 @@ export default function Users() {
               {items.map((u) => (
                 <TableRow key={u.id} data-testid={`user-row-${u.id}`}>
                   <TableCell className="font-semibold">{u.name}</TableCell>
-                  <TableCell>{u.email}</TableCell>
+                  <TableCell>{u.username}</TableCell>
                   <TableCell>
                     <Badge className={u.role === "admin" ? "bg-sky-600 text-white" : "bg-slate-500 text-white"}>
                       {u.role === "admin" ? "Admin" : "User"}
@@ -101,8 +101,8 @@ export default function Users() {
           <div className="space-y-4">
             <div><Label>Nama</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="user-name-input" /></div>
             <div>
-              <Label>Email</Label>
-              <Input type="email" value={form.email} disabled={!!editId} onChange={(e) => setForm({ ...form, email: e.target.value })} data-testid="user-email-input" />
+              <Label>Nama Pengguna</Label>
+              <Input type="text" value={form.username} disabled={!!editId} onChange={(e) => setForm({ ...form, username: e.target.value })} data-testid="user-username-input" />
             </div>
             <div>
               <Label>Peran</Label>

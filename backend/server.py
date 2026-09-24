@@ -53,8 +53,8 @@ def get_jwt_secret() -> str:
     return os.environ["JWT_SECRET"]
 
 
-def create_access_token(user_id: str, email: str, token_version: int = 0) -> str:
-    payload = {"sub": user_id, "email": email, "ver": token_version,
+def create_access_token(user_id: str, username: str, token_version: int = 0) -> str:
+    payload = {"sub": user_id, "username": username, "ver": token_version,
                "exp": datetime.now(timezone.utc) + timedelta(hours=8), "type": "access"}
     return jwt.encode(payload, get_jwt_secret(), algorithm=JWT_ALGORITHM)
 
@@ -72,7 +72,7 @@ def set_auth_cookies(response: Response, access: str, refresh: str):
 
 
 def public_user(u: dict) -> dict:
-    return {"id": str(u["_id"]), "email": u["email"], "name": u.get("name", ""),
+    return {"id": str(u["_id"]), "username": u["username"], "name": u.get("name", ""),
             "role": u.get("role", "user")}
 
 
@@ -112,12 +112,12 @@ def is_admin(user: dict) -> bool:
 
 # ------------------------------------------------------------------ auth models
 class LoginInput(BaseModel):
-    email: EmailStr
+    username: str
     password: str
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    username: str
     password: str
     name: str
     role: str = "user"
@@ -136,9 +136,9 @@ LOCK_MINUTES = 15
 
 @api.post("/auth/login")
 async def login(payload: LoginInput, request: Request, response: Response):
-    email = payload.email.lower()
+    username = payload.username.strip().lower()
     ip = request.client.host if request.client else "?"
-    identifier = f"{ip}:{email}"
+    identifier = f"{ip}:{username}"
 
     rec = await db.login_attempts.find_one({"identifier": identifier})
     if rec and rec.get("count", 0) >= MAX_ATTEMPTS:
@@ -146,18 +146,18 @@ async def login(payload: LoginInput, request: Request, response: Response):
         if locked_until and datetime.fromisoformat(locked_until) > datetime.now(timezone.utc):
             raise HTTPException(status_code=429, detail="Terlalu banyak percobaan. Coba lagi dalam 15 menit.")
 
-    user = await db.users.find_one({"email": email})
+    user = await db.users.find_one({"username": username})
     if not user or not verify_password(payload.password, user["password_hash"]):
         await db.login_attempts.update_one(
             {"identifier": identifier},
-            {"$inc": {"count": 1}, "$set": {"email": email,
+            {"$inc": {"count": 1}, "$set": {"username": username,
              "locked_until": (datetime.now(timezone.utc) + timedelta(minutes=LOCK_MINUTES)).isoformat()}},
             upsert=True)
-        raise HTTPException(status_code=401, detail="Email atau kata sandi salah")
+        raise HTTPException(status_code=401, detail="Nama pengguna atau kata sandi salah")
 
     await db.login_attempts.delete_many({"identifier": identifier})
     ver = user.get("token_version", 0)
-    access = create_access_token(str(user["_id"]), email, ver)
+    access = create_access_token(str(user["_id"]), username, ver)
     refresh = create_refresh_token(str(user["_id"]), ver)
     set_auth_cookies(response, access, refresh)
     return public_user(user)
@@ -188,7 +188,7 @@ async def refresh_token_endpoint(request: Request, response: Response):
         if not user or payload.get("ver", 0) != user.get("token_version", 0):
             raise HTTPException(status_code=401, detail="Sesi berakhir")
         ver = user.get("token_version", 0)
-        access = create_access_token(str(user["_id"]), user["email"], ver)
+        access = create_access_token(str(user["_id"]), user["username"], ver)
         new_refresh = create_refresh_token(str(user["_id"]), ver)
         set_auth_cookies(response, access, new_refresh)
         return public_user(user)
@@ -205,12 +205,12 @@ async def list_users(user: dict = Depends(require_admin)):
 
 @api.post("/users")
 async def create_user(payload: UserCreate, user: dict = Depends(require_admin)):
-    email = payload.email.lower()
-    if await db.users.find_one({"email": email}):
-        raise HTTPException(status_code=400, detail="Email sudah terdaftar")
+    username = payload.username.strip().lower()
+    if await db.users.find_one({"username": username}):
+        raise HTTPException(status_code=400, detail="Nama pengguna sudah terdaftar")
     if payload.role not in ("admin", "user"):
         raise HTTPException(status_code=400, detail="Peran tidak valid")
-    doc = {"email": email, "password_hash": hash_password(payload.password),
+    doc = {"username": username, "password_hash": hash_password(payload.password),
            "name": payload.name, "role": payload.role, "token_version": 0,
            "created_at": now_iso()}
     res = await db.users.insert_one(doc)
@@ -560,19 +560,19 @@ async def reports_summary(user: dict = Depends(get_current_user)):
 
 # ------------------------------------------------------------------ seeding
 async def seed_admin():
-    admin_email = os.environ["ADMIN_EMAIL"].lower()
+    admin_username = os.environ["ADMIN_USERNAME"].strip().lower()
     admin_password = os.environ["ADMIN_PASSWORD"]
-    existing = await db.users.find_one({"email": admin_email})
+    existing = await db.users.find_one({"username": admin_username})
     if existing is None:
-        await db.users.insert_one({"email": admin_email, "password_hash": hash_password(admin_password),
+        await db.users.insert_one({"username": admin_username, "password_hash": hash_password(admin_password),
                                    "name": "Administrator", "role": "admin", "token_version": 0,
                                    "created_at": now_iso()})
     elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one({"email": admin_email},
+        await db.users.update_one({"username": admin_username},
                                   {"$set": {"password_hash": hash_password(admin_password)}})
     # viewer test account
-    if await db.users.find_one({"email": "operator@simin.co.id"}) is None:
-        await db.users.insert_one({"email": "operator@simin.co.id",
+    if await db.users.find_one({"username": "operator"}) is None:
+        await db.users.insert_one({"username": "operator",
                                    "password_hash": hash_password("Operator#2026"),
                                    "name": "Operator Produksi", "role": "user", "token_version": 0,
                                    "created_at": now_iso()})
@@ -660,7 +660,7 @@ async def seed_data():
 
 @app.on_event("startup")
 async def startup():
-    await db.users.create_index("email", unique=True)
+    await db.users.create_index("username", unique=True)
     await db.login_attempts.create_index("identifier")
     await db.machines.create_index("id", unique=True)
     await db.spareparts.create_index("id", unique=True)

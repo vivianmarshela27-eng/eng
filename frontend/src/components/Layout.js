@@ -53,14 +53,14 @@ export default function Layout() {
       >
         <div className="h-20 flex items-center gap-3 px-6 border-b border-slate-800">
           <div className="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-xl">
-            SM
+            SE
           </div>
           <div>
             <div className="font-heading font-extrabold text-lg tracking-wide leading-none">
-              SIMIN
+              SATRIA
             </div>
             <div className="text-[11px] text-slate-400 uppercase tracking-wider mt-1">
-              Pemeliharaan Mesin
+              Engineering
             </div>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function Layout() {
           <button onClick={() => setOpen(!open)} data-testid="menu-toggle">
             {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
-          <span className="font-heading font-bold tracking-wide">SIMIN</span>
+          <span className="font-heading font-bold tracking-wide">SATRIA ENGINEERING</span>
           <span className="w-6" />
         </header>
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

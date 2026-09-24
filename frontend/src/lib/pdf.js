@@ -17,7 +17,7 @@ export function generateServicePDF(sv, { isAdmin }) {
   doc.text("BERITA ACARA PEMELIHARAAN (BAP)", 14, 13);
   doc.setFontSize(9);
   doc.setFont(undefined, "normal");
-  doc.text("SIMIN - Sistem Informasi Pemeliharaan Mesin", 14, 21);
+  doc.text("SATRIA ENGINEERING - Sistem Informasi Pemeliharaan Mesin", 14, 21);
 
   doc.setTextColor(0, 0, 0);
   let y = 40;
