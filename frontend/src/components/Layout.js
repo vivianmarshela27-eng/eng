@@ -46,17 +46,12 @@ export default function Layout() {
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static z-50 inset-y-0 left-0 w-72 bg-slate-900 text-slate-100 border-r border-slate-800 flex flex-col relative overflow-hidden transition-transform duration-300 ${
+        className={`fixed lg:static z-50 inset-y-0 left-0 w-72 bg-slate-900 text-slate-100 border-r border-slate-800 flex flex-col transition-transform duration-300 ${
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
         data-testid="sidebar"
       >
-        <div
-          className="pointer-events-none absolute inset-0 z-0 bg-no-repeat bg-center opacity-[0.06]"
-          style={{ backgroundImage: "url('/logo.png')", backgroundSize: "220px" }}
-          aria-hidden="true"
-        />
-        <div className="relative z-10 h-20 flex items-center gap-3 px-6 border-b border-slate-800">
+        <div className="h-20 flex items-center gap-3 px-6 border-b border-slate-800">
           <div className="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-xl">
             SE
           </div>
@@ -70,7 +65,7 @@ export default function Layout() {
           </div>
         </div>
 
-        <nav className="relative z-10 flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
           {items.map((it) => (
             <NavLink
               key={it.to}
@@ -91,7 +86,7 @@ export default function Layout() {
           ))}
         </nav>
 
-        <div className="relative z-10 p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-slate-700" data-testid="profile-photo">
               <img src="/logo.png" alt="Satria Engineering" className="w-full h-full object-contain p-0.5" />
