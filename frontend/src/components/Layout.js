@@ -88,8 +88,8 @@ export default function Layout() {
 
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-semibold">
-              {(user?.name || "?").charAt(0).toUpperCase()}
+            <div className="w-10 h-10 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-slate-700" data-testid="profile-photo">
+              <img src="/logo.png" alt="Satria Engineering" className="w-full h-full object-contain p-0.5" />
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold truncate" data-testid="current-user-name">

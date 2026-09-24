@@ -67,7 +67,13 @@ export default function Dashboard() {
   ].filter((d) => d.value > 0);
 
   return (
-    <div>
+    <div className="relative">
+      <div
+        className="pointer-events-none fixed inset-0 lg:left-72 z-0 bg-center bg-no-repeat opacity-[0.05]"
+        style={{ backgroundImage: "url('/logo.png')", backgroundSize: "min(620px, 58%)" }}
+        aria-hidden="true"
+      />
+      <div className="relative z-10">
       <PageHeader
         title="Dashboard"
         subtitle={`Selamat datang, ${user?.name}. Ringkasan kondisi pemeliharaan mesin.`}
@@ -225,6 +231,7 @@ export default function Dashboard() {
             )}
           </div>
         </Card>
+      </div>
       </div>
     </div>
   );
