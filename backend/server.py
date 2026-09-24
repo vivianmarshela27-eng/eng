@@ -424,6 +424,80 @@ async def delete_schedule(item_id: str, user: dict = Depends(require_admin)):
     return {"message": "Jadwal dihapus"}
 
 
+# ------------------------------------------------------------------ Checksheet Templates
+class TemplateItem(BaseModel):
+    item: str = ""
+    unit: Optional[str] = ""
+    std_min: Optional[str] = ""
+    std_max: Optional[str] = ""
+
+
+class ChecksheetTemplateIn(BaseModel):
+    name: str
+    machine_type: Optional[str] = ""
+    items: List[TemplateItem] = []
+
+
+@api.get("/checksheet-templates")
+async def list_templates(user: dict = Depends(get_current_user)):
+    items = await db.checksheet_templates.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return items
+
+
+@api.post("/checksheet-templates")
+async def create_template(payload: ChecksheetTemplateIn, user: dict = Depends(require_admin)):
+    doc = payload.model_dump()
+    doc["id"] = str(uuid.uuid4())
+    doc["created_at"] = now_iso()
+    await db.checksheet_templates.insert_one(doc)
+    return clean(doc)
+
+
+@api.put("/checksheet-templates/{item_id}")
+async def update_template(item_id: str, payload: ChecksheetTemplateIn, user: dict = Depends(require_admin)):
+    res = await db.checksheet_templates.find_one_and_update({"id": item_id}, {"$set": payload.model_dump()},
+                                                            projection={"_id": 0}, return_document=True)
+    if not res:
+        raise HTTPException(status_code=404, detail="Template tidak ditemukan")
+    return res
+
+
+@api.delete("/checksheet-templates/{item_id}")
+async def delete_template(item_id: str, user: dict = Depends(require_admin)):
+    await db.checksheet_templates.delete_one({"id": item_id})
+    return {"message": "Template dihapus"}
+
+
+# ------------------------------------------------------------------ Schedule Checksheet
+class ChecksheetItem(BaseModel):
+    item: str = ""
+    value: Optional[str] = ""
+    unit: Optional[str] = ""
+    std_min: Optional[str] = ""
+    std_max: Optional[str] = ""
+    result: Optional[str] = ""  # ok | not_ok | ""
+    note: Optional[str] = ""
+
+
+class ChecksheetData(BaseModel):
+    items: List[ChecksheetItem] = []
+    operator_name: Optional[str] = ""
+    technician_name: Optional[str] = ""
+    operator_signature: Optional[str] = ""
+    technician_signature: Optional[str] = ""
+
+
+@api.put("/schedules/{item_id}/checksheet")
+async def save_checksheet(item_id: str, payload: ChecksheetData, user: dict = Depends(require_admin)):
+    data = payload.model_dump()
+    data["updated_at"] = now_iso()
+    res = await db.schedules.find_one_and_update({"id": item_id}, {"$set": {"checksheet": data}},
+                                                 projection={"_id": 0}, return_document=True)
+    if not res:
+        raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
+    return res
+
+
 # ------------------------------------------------------------------ Services / Repairs
 class UsedPart(BaseModel):
     sparepart_id: str
@@ -658,6 +732,33 @@ async def seed_data():
     await db.services.insert_many(services)
 
 
+async def seed_templates():
+    if await db.checksheet_templates.count_documents({}) > 0:
+        return
+    templates = [
+        {"id": str(uuid.uuid4()), "name": "Checksheet Umum Mesin Produksi", "machine_type": "Umum",
+         "items": [
+             {"item": "Tekanan oli pelumas", "unit": "bar", "std_min": "2", "std_max": "5"},
+             {"item": "Suhu bearing", "unit": "°C", "std_min": "40", "std_max": "80"},
+             {"item": "Getaran/vibrasi", "unit": "mm/s", "std_min": "0", "std_max": "4.5"},
+             {"item": "Kekencangan baut pondasi", "unit": "", "std_min": "", "std_max": ""},
+             {"item": "Kebersihan area mesin", "unit": "", "std_min": "", "std_max": ""},
+             {"item": "Kebocoran oli/pelumas", "unit": "", "std_min": "", "std_max": ""},
+         ]},
+        {"id": str(uuid.uuid4()), "name": "Checksheet Kompresor Udara", "machine_type": "Kompresor Udara",
+         "items": [
+             {"item": "Tekanan kerja", "unit": "bar", "std_min": "6", "std_max": "8"},
+             {"item": "Suhu discharge", "unit": "°C", "std_min": "60", "std_max": "95"},
+             {"item": "Level oli kompresor", "unit": "", "std_min": "", "std_max": ""},
+             {"item": "Kondisi filter udara", "unit": "", "std_min": "", "std_max": ""},
+             {"item": "Fungsi safety valve", "unit": "", "std_min": "", "std_max": ""},
+         ]},
+    ]
+    for t in templates:
+        t["created_at"] = now_iso()
+    await db.checksheet_templates.insert_many(templates)
+
+
 @app.on_event("startup")
 async def startup():
     await db.users.create_index("username", unique=True)
@@ -667,8 +768,10 @@ async def startup():
     await db.technicians.create_index("id", unique=True)
     await db.schedules.create_index("id", unique=True)
     await db.services.create_index("id", unique=True)
+    await db.checksheet_templates.create_index("id", unique=True)
     await seed_admin()
     await seed_data()
+    await seed_templates()
     logger.info("SIMIN startup complete")
 
 

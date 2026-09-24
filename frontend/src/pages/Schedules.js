@@ -16,8 +16,10 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, AlertTriangle, ClipboardList, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
+import ChecksheetDialog from "@/components/ChecksheetDialog";
+import TemplateManager from "@/components/TemplateManager";
 
 const empty = {
   machine_id: "", machine_name: "", maintenance_type: "", due_date: "",
@@ -33,12 +35,18 @@ export default function Schedules() {
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState(null);
   const [delId, setDelId] = useState(null);
+  const [templates, setTemplates] = useState([]);
+  const [csTarget, setCsTarget] = useState(null);
+  const [tplOpen, setTplOpen] = useState(false);
+
+  const loadTemplates = () => api.get("/checksheet-templates").then((r) => setTemplates(r.data)).catch(() => {});
 
   const load = () => {
     api.get("/schedules").then((r) => setItems(r.data)).catch(() => {});
   };
   useEffect(() => {
     load();
+    loadTemplates();
     api.get("/machines").then((r) => setMachines(r.data)).catch(() => {});
     api.get("/technicians").then((r) => setTechs(r.data)).catch(() => {});
   }, []);
@@ -75,9 +83,14 @@ export default function Schedules() {
     <div>
       <PageHeader title="Jadwal Pemeliharaan" subtitle="Jadwal preventif per mesin.">
         {isAdmin && (
-          <Button onClick={openNew} data-testid="add-schedule-button" className="bg-sky-600 hover:bg-sky-500">
-            <Plus className="w-4 h-4 mr-2" /> Tambah Jadwal
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setTplOpen(true)} variant="outline" data-testid="manage-templates-button">
+              <ClipboardList className="w-4 h-4 mr-2" /> Kelola Template
+            </Button>
+            <Button onClick={openNew} data-testid="add-schedule-button" className="bg-sky-600 hover:bg-sky-500">
+              <Plus className="w-4 h-4 mr-2" /> Tambah Jadwal
+            </Button>
+          </div>
         )}
       </PageHeader>
 
@@ -92,12 +105,12 @@ export default function Schedules() {
                 <TableHead>Frekuensi</TableHead>
                 <TableHead>Teknisi</TableHead>
                 <TableHead>Status</TableHead>
-                {isAdmin && <TableHead className="text-right">Aksi</TableHead>}
+                <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 && (
-                <TableRow><TableCell colSpan={isAdmin ? 7 : 6} className="text-center text-slate-400 py-8">Belum ada jadwal.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-slate-400 py-8">Belum ada jadwal.</TableCell></TableRow>
               )}
               {items.map((s) => (
                 <TableRow key={s.id} className={isOverdue(s) ? "bg-rose-50/60 dark:bg-rose-950/20" : ""} data-testid={`schedule-row-${s.id}`}>
@@ -112,12 +125,18 @@ export default function Schedules() {
                   <TableCell className="capitalize">{s.frequency}</TableCell>
                   <TableCell>{s.technician_name || "-"}</TableCell>
                   <TableCell><StatusBadge status={isOverdue(s) ? "jatuh_tempo" : s.status} /></TableCell>
-                  {isAdmin && (
-                    <TableCell className="text-right whitespace-nowrap">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(s)} data-testid={`edit-schedule-${s.id}`}><Pencil className="w-4 h-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDelId(s.id)} data-testid={`delete-schedule-${s.id}`}><Trash2 className="w-4 h-4 text-rose-600" /></Button>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button variant="outline" size="sm" onClick={() => setCsTarget(s)} data-testid={`checksheet-schedule-${s.id}`} className="mr-1">
+                      <ClipboardCheck className="w-4 h-4 mr-1" /> Checksheet
+                      {s.checksheet?.items?.length > 0 && <span className="ml-1.5 inline-flex items-center justify-center text-[10px] font-bold w-4 h-4 rounded-full bg-sky-600 text-white">{s.checksheet.items.length}</span>}
+                    </Button>
+                    {isAdmin && (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)} data-testid={`edit-schedule-${s.id}`}><Pencil className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDelId(s.id)} data-testid={`delete-schedule-${s.id}`}><Trash2 className="w-4 h-4 text-rose-600" /></Button>
+                      </>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -191,6 +210,16 @@ export default function Schedules() {
           <AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={doDelete} className="bg-rose-600 hover:bg-rose-500">Hapus</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ChecksheetDialog
+        open={!!csTarget}
+        onOpenChange={(v) => !v && setCsTarget(null)}
+        schedule={csTarget}
+        templates={templates}
+        isAdmin={isAdmin}
+        onSaved={load}
+      />
+      <TemplateManager open={tplOpen} onOpenChange={setTplOpen} templates={templates} onChanged={loadTemplates} />
     </div>
   );
 }

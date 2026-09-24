@@ -106,6 +106,101 @@ export async function generateServicePDF(sv, { isAdmin }) {
   doc.save(`BAP-${(sv.machine_name || "servis").replace(/\s+/g, "-")}-${formatDate(sv.date)}.pdf`);
 }
 
+// Berita Acara Checksheet Pemeliharaan for a schedule.
+export async function generateChecksheetPDF(sch) {
+  const cs = sch.checksheet || {};
+  const doc = new jsPDF();
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
+
+  const logo = await loadLogoDataUrl();
+  if (logo) {
+    try {
+      const iw = 120, ih = 120;
+      doc.saveGraphicsState();
+      doc.setGState(new doc.GState({ opacity: 0.06 }));
+      doc.addImage(logo, "PNG", (w - iw) / 2, (h - ih) / 2, iw, ih);
+      doc.restoreGraphicsState();
+    } catch (e) {}
+  }
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, w, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(15);
+  doc.setFont(undefined, "bold");
+  doc.text("BERITA ACARA CHECKSHEET PEMELIHARAAN", 14, 12);
+  doc.setFontSize(9);
+  doc.setFont(undefined, "normal");
+  doc.text("SATRIA ENGINEERING - Sistem Informasi Pemeliharaan Mesin", 14, 20);
+
+  doc.setTextColor(0, 0, 0);
+  const info = [
+    ["Mesin", sch.machine_name || "-"],
+    ["Jenis Pemeliharaan", sch.maintenance_type || "-"],
+    ["Jatuh Tempo", formatDate(sch.due_date)],
+    ["Teknisi", cs.technician_name || sch.technician_name || "-"],
+    ["Operator", cs.operator_name || "-"],
+  ];
+  autoTable(doc, {
+    startY: 34, body: info, theme: "plain",
+    columnStyles: { 0: { cellWidth: 50, fontStyle: "bold" } }, styles: { fontSize: 9 },
+  });
+  let y = doc.lastAutoTable.finalY + 4;
+
+  const RES = { ok: "OK", not_ok: "Tidak OK" };
+  const items = cs.items || [];
+  autoTable(doc, {
+    startY: y,
+    head: [["No", "Item Pemeriksaan", "Nilai", "Satuan", "Standar", "Hasil", "Catatan"]],
+    body: items.map((it, i) => [
+      String(i + 1), it.item || "-", it.value || "-", it.unit || "-",
+      (it.std_min || it.std_max) ? `${it.std_min || ""} - ${it.std_max || ""}` : "-",
+      RES[it.result] || "-", it.note || "-",
+    ]),
+    theme: "grid",
+    headStyles: { fillColor: [2, 132, 199] },
+    styles: { fontSize: 8, cellPadding: 1.5 },
+    columnStyles: { 0: { cellWidth: 10 }, 5: { cellWidth: 18 } },
+    didParseCell: (d) => {
+      if (d.section === "body" && d.column.index === 5) {
+        const raw = items[d.row.index]?.result;
+        if (raw === "ok") d.cell.styles.textColor = [5, 150, 105];
+        if (raw === "not_ok") d.cell.styles.textColor = [225, 29, 72];
+      }
+    },
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  const okCount = items.filter((i) => i.result === "ok").length;
+  const notOkCount = items.filter((i) => i.result === "not_ok").length;
+  doc.setFontSize(9);
+  doc.setFont(undefined, "bold");
+  doc.text(`Ringkasan: ${okCount} OK, ${notOkCount} Tidak OK, dari ${items.length} item.`, 14, y);
+  y += 10;
+
+  if (y > h - 60) { doc.addPage(); y = 20; }
+  doc.setFont(undefined, "bold");
+  doc.setFontSize(10);
+  doc.text("Operator", 40, y, { align: "center" });
+  doc.text("Teknisi", w - 55, y, { align: "center" });
+  const sigY = y + 4;
+  try {
+    if (cs.operator_signature) doc.addImage(cs.operator_signature, "PNG", 15, sigY, 50, 22);
+    if (cs.technician_signature) doc.addImage(cs.technician_signature, "PNG", w - 80, sigY, 50, 22);
+  } catch (e) {}
+  const lineY = sigY + 26;
+  doc.setDrawColor(0);
+  doc.line(15, lineY, 65, lineY);
+  doc.line(w - 80, lineY, w - 30, lineY);
+  doc.setFont(undefined, "normal");
+  doc.setFontSize(9);
+  doc.text(cs.operator_name || "( ................. )", 40, lineY + 5, { align: "center" });
+  doc.text(cs.technician_name || sch.technician_name || "( ................. )", w - 55, lineY + 5, { align: "center" });
+
+  doc.save(`BAP-Checksheet-${(sch.machine_name || "mesin").replace(/\s+/g, "-")}-${formatDate(sch.due_date)}.pdf`);
+}
+
 export function generateReportPDF(services, { isAdmin }) {
   const doc = new jsPDF();
   const w = doc.internal.pageSize.getWidth();

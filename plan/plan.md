@@ -1,42 +1,42 @@
-# Rencana: Sistem Informasi Pemeliharaan Mesin
+# Rencana: Form Checksheet pada Jadwal Pemeliharaan
 
-Aplikasi web untuk mengelola pemeliharaan mesin di lingkungan produksi/pabrik. Tampilan dalam **Bahasa Indonesia**.
+Menambahkan form **checksheet (lembar pemeriksaan)** pada menu Jadwal Pemeliharaan. Checksheet berisi daftar item yang harus diperiksa saat pemeliharaan preventif, lengkap dengan nilai pengukuran dan hasilnya. Tampilan tetap dalam Bahasa Indonesia.
 
-## Hak Akses (2 peran)
+## Bentuk Item Pemeriksaan
 
-- **Admin**: dapat melihat, menambah, mengubah, dan menghapus seluruh data.
-- **User (Viewer)**: hanya dapat melihat data (read-only). Tidak ada tombol tambah/ubah/hapus. **Informasi biaya servis dan harga sparepart disembunyikan sepenuhnya dari User** — hanya Admin yang dapat melihatnya.
+Setiap item checksheet memiliki kolom:
+- **Item pemeriksaan** (teks) — mis. "Tekanan oli", "Suhu bearing", "Kekencangan baut".
+- **Nilai pengukuran** (angka) — hasil ukur di lapangan.
+- **Satuan** — mis. bar, °C, mm, RPM.
+- **Rentang standar** — batas bawah dan batas atas yang diperbolehkan.
+- **Hasil** — OK / Tidak OK.
+- **Catatan** (opsional).
 
-Login menggunakan **email + password**. Sesi otomatis berakhir saat browser ditutup (harus login ulang setiap kali membuka browser baru). Halaman login dibuat khusus, dan seluruh halaman lain hanya bisa diakses setelah login.
+Catatan: kolom nilai/satuan/rentang boleh dikosongkan untuk item yang sifatnya cek visual (tanpa angka), sehingga item cukup dinilai OK / Tidak OK. Saat nilai diisi dan berada di luar rentang standar, sistem menandai/menyarankan hasil "Tidak OK", namun keputusan akhir OK/Tidak OK tetap ditentukan admin.
 
-Akun admin awal disediakan agar bisa langsung dipakai; detail akun akan diberikan setelah aplikasi jadi.
+## Penyusunan Daftar Item (Template + Per Jadwal)
 
-## Fitur Utama
+- **Template master**: Admin dapat membuat dan mengelola satu atau lebih template checksheet berisi daftar item standar (mis. template untuk jenis/tipe mesin tertentu).
+- **Per jadwal**: Saat membuka checksheet sebuah jadwal, Admin dapat memuat item dari sebuah template lalu **mengubahnya khusus untuk jadwal itu** (menambah, mengubah, menghapus, mengurutkan item) tanpa mengubah template aslinya.
+- Perubahan pada template tidak otomatis mengubah checksheet jadwal yang sudah diisi.
 
-### 1. Manajemen Mesin
-Daftar mesin beserta data: kode/nomor mesin, nama, tipe/model, lokasi, tanggal pembelian, status (aktif / dalam perbaikan / nonaktif), dan catatan. Admin dapat menambah/ubah/hapus.
+## Hak Akses
 
-### 2. Jadwal Pemeliharaan (Preventif)
-Menjadwalkan pemeliharaan rutin per mesin: jenis pemeliharaan, tanggal jatuh tempo, frekuensi (harian/mingguan/bulanan), teknisi yang ditugaskan, dan status (terjadwal / jatuh tempo / selesai). Jadwal yang mendekati/melewati tanggal ditandai jelas.
+- **Admin**: mengelola template, menyusun/mengubah daftar item per jadwal, dan mengisi hasil pemeriksaan (nilai + OK/Tidak OK + catatan).
+- **User (Viewer)**: hanya dapat **melihat** checksheet beserta hasilnya. Tidak dapat mengubah item maupun mengisi hasil.
 
-### 3. Manajemen Sparepart
-- Daftar sparepart: kode, nama, kategori, jumlah stok, stok minimum, satuan, lokasi penyimpanan, dan harga (**harga hanya terlihat oleh Admin**). Stok yang berada di bawah batas minimum ditandai sebagai "stok menipis". Pemakaian sparepart saat servis mengurangi stok.
+## Letak & Alur
 
-### 4. Manajemen Teknisi
-Daftar teknisi: nama, spesialisasi/keahlian, nomor kontak, dan status. Teknisi dipakai untuk penugasan pada jadwal dan perbaikan. (Teknisi di sini adalah data, bukan akun login.)
+- Pada setiap baris di menu **Jadwal Pemeliharaan** tersedia aksi **"Checksheet"** yang membuka form checksheet untuk jadwal tersebut.
+- Admin memuat/menyusun item, mengisi nilai dan hasil, lalu menyimpan. Hasil tersimpan menempel pada jadwal.
+- Ringkasan hasil (mis. jumlah item OK vs Tidak OK) ditampilkan agar mudah dilihat.
 
-### 5. Perbaikan & Riwayat Servis
-Pencatatan setiap kegiatan servis, baik pemeliharaan preventif maupun perbaikan (breakdown): mesin terkait, tanggal, jenis (preventif/perbaikan), deskripsi masalah, tindakan yang dilakukan, teknisi, sparepart yang dipakai, dan biaya (**biaya hanya terlihat oleh Admin**). Seluruh catatan tersimpan sebagai riwayat yang bisa ditelusuri per mesin.
+## Bukti di PDF (BAP)
 
-### 6. Laporan & Analisa
-- **Grafik ringkasan** di dashboard: jumlah mesin per status, jadwal yang jatuh tempo, sparepart stok menipis, dan biaya servis (misalnya per bulan). **Grafik biaya servis hanya tampil untuk Admin.**
-- **Ekspor laporan ke PDF**: laporan riwayat servis / ringkasan dapat diunduh sebagai file PDF.
+- Hasil isian checksheet **ikut ditampilkan pada PDF Berita Acara (BAP)** bersama tanda tangan operator dan teknisi, sebagai bukti pemeriksaan. Tabel checksheet pada BAP memuat item, nilai, satuan, rentang standar, hasil, dan catatan.
 
-### 7. Form Tanda Tangan (Bukti Selesai)
-Setelah pemeliharaan preventif atau perbaikan selesai, tersedia form bukti penyelesaian dengan **tanda tangan digital yang digambar langsung di layar** (mouse atau sentuh) untuk **operator** dan **teknisi**. Tanda tangan tersimpan menempel pada catatan servis terkait dan ikut muncul pada laporan PDF sebagai bukti.
+## Asumsi
 
-## Catatan / Asumsi
-
-- Data yang dikelola bersifat internal (bukan untuk publik).
-- Mata uang biaya diasumsikan Rupiah (Rp).
-- Fitur yang tidak disebutkan dalam problem statement (mis. notifikasi email otomatis, aplikasi mobile terpisah, ekspor Excel) tidak termasuk dalam versi ini dan dapat ditambahkan kemudian bila diperlukan.
+- Checksheet ditujukan untuk pemeliharaan preventif; tetap dapat dibuka untuk jadwal jenis lain bila diperlukan.
+- Tidak ada perubahan pada fitur lain (mesin, sparepart, teknisi, laporan) selain penambahan tabel checksheet pada BAP.
+- Tidak ada notifikasi email atau ekspor Excel dalam penambahan ini.
