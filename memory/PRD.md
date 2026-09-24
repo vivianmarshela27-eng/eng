@@ -34,3 +34,14 @@ Website sistem informasi pemeliharaan mesin (Bahasa Indonesia) dengan fitur: Man
 
 ## Notes
 - Data internal. Email notifications intentionally excluded per plan; password recovery handled by admin via Manajemen Pengguna.
+
+
+## Implemented — 2026-06 (updates)
+- Rebranded to **SATRIA ENGINEERING**; login switched to **username + password** (no email). Admin `admin`, viewer `operator`.
+- Logo integrated: login page, sidebar header, profile avatar, faint dashboard watermark, and BAP PDF watermark.
+- **Checksheet feature** on Jadwal Pemeliharaan:
+  - Master checksheet **templates** (collection `checksheet_templates`, admin CRUD; all can read). Seeded 2 templates.
+  - Per-schedule checksheet stored on `schedules.checksheet` via `PUT /api/schedules/{id}/checksheet` (admin only). Items: item, value, unit, std_min/std_max, result (ok/not_ok), note. Auto-suggest result when value is out of range; OK/Tidak OK summary.
+  - Operator + technician names & digital signatures on the checksheet; exported to **BAP Checksheet PDF** (`generateChecksheetPDF`).
+  - User (viewer) sees checksheet read-only; can still Cetak BAP.
+  - Components: `ChecksheetDialog.js`, `TemplateManager.js`. Verified via testing agent (iteration_2, 100% pass).
