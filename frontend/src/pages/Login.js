@@ -35,97 +35,70 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-slate-950">
-      {/* Visual side */}
-      <div
-        className="hidden lg:flex relative flex-col justify-between p-12 bg-cover bg-center"
-        style={{
-          backgroundImage:
-            "linear-gradient(to top, rgba(2,6,23,0.95), rgba(2,6,23,0.55)), url(https://images.unsplash.com/photo-1598299803204-b73796f43289?crop=entropy&cs=srgb&fm=jpg&q=85&w=1200)",
-        }}
-      >
-        <div className="inline-flex bg-white rounded-2xl p-3 shadow-xl w-fit">
-          <img src="/logo.png" alt="Satria Engineering" className="h-16 w-auto object-contain" data-testid="login-logo" />
-        </div>
-        <div className="text-white max-w-md">
-          <h2 className="font-heading text-4xl font-extrabold uppercase leading-tight tracking-tight">
-            Sistem Informasi Pemeliharaan Mesin
-          </h2>
-          <p className="text-slate-300 mt-4 leading-relaxed">
-            Kelola aset mesin, jadwal preventif, sparepart, teknisi, riwayat servis, dan
-            laporan dalam satu platform terpadu.
-          </p>
-        </div>
-      </div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-white bg-no-repeat bg-center bg-[length:90%_auto] sm:bg-[length:560px_auto] lg:bg-[length:680px_auto]"
+      style={{ backgroundImage: "url('/login-bg.png')" }}
+      data-testid="login-page"
+    >
+      <div className="w-full max-w-md rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-2xl p-8 sm:p-10">
+        <h1 className="font-heading text-3xl font-extrabold uppercase text-white tracking-tight">
+          Masuk
+        </h1>
+        <p className="text-slate-300 text-sm mt-1 mb-8">
+          Masukkan kredensial untuk mengakses sistem.
+        </p>
 
-      {/* Form side */}
-      <div className="flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md">
-          <div className="lg:hidden flex items-center justify-center mb-8">
-            <div className="bg-white rounded-2xl p-3 shadow-xl">
-              <img src="/logo.png" alt="Satria Engineering" className="h-16 w-auto object-contain" data-testid="login-logo-mobile" />
-            </div>
+        <form onSubmit={submit} className="space-y-5">
+          <div>
+            <Label htmlFor="username" className="text-slate-300">
+              Nama Pengguna
+            </Label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
+              required
+              data-testid="login-username-input"
+              className="mt-1.5 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 h-11"
+            />
+          </div>
+          <div>
+            <Label htmlFor="password" className="text-slate-300">
+              Kata Sandi
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              data-testid="login-password-input"
+              className="mt-1.5 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 h-11"
+            />
           </div>
 
-          <h1 className="font-heading text-3xl font-extrabold uppercase text-white tracking-tight">
-            Masuk
-          </h1>
-          <p className="text-slate-400 text-sm mt-1 mb-8">
-            Masukkan kredensial untuk mengakses sistem.
-          </p>
-
-          <form onSubmit={submit} className="space-y-5">
-            <div>
-              <Label htmlFor="username" className="text-slate-300">
-                Nama Pengguna
-              </Label>
-              <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                required
-                data-testid="login-username-input"
-                className="mt-1.5 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 h-11"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password" className="text-slate-300">
-                Kata Sandi
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                data-testid="login-password-input"
-                className="mt-1.5 bg-slate-900 border-slate-700 text-white placeholder:text-slate-500 h-11"
-              />
-            </div>
-
-            {error && (
-              <div
-                className="text-sm text-rose-400 bg-rose-950/50 border border-rose-900 rounded-lg px-4 py-2.5"
-                data-testid="login-error"
-              >
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={loading}
-              data-testid="login-submit-button"
-              className="w-full h-11 bg-sky-600 hover:bg-sky-500 text-white font-semibold"
+          {error && (
+            <div
+              className="text-sm text-rose-400 bg-rose-950/50 border border-rose-900 rounded-lg px-4 py-2.5"
+              data-testid="login-error"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Masuk
-            </Button>
-          </form>
-        </div>
+              {error}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            disabled={loading}
+            data-testid="login-submit-button"
+            className="w-full h-11 bg-sky-600 hover:bg-sky-500 text-white font-semibold"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            Masuk
+          </Button>
+        </form>
       </div>
     </div>
   );
