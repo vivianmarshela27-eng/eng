@@ -1,0 +1,231 @@
+import React, { useEffect, useState } from "react";
+import api from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import { PageHeader } from "@/components/PageHeader";
+import { Card } from "@/components/ui/card";
+import StatusBadge from "@/components/StatusBadge";
+import { formatRupiah, formatDate } from "@/lib/format";
+import {
+  Cog,
+  CheckCircle2,
+  CalendarClock,
+  AlertTriangle,
+  Wallet,
+  Wrench,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+} from "recharts";
+
+const PIE_COLORS = ["#059669", "#D97706", "#E11D48", "#64748b"];
+
+function StatCard({ icon: Icon, label, value, tone, testId }) {
+  return (
+    <Card className="p-5 flex items-center gap-4" data-testid={testId}>
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${tone}`}>
+        <Icon className="w-6 h-6" />
+      </div>
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          {label}
+        </div>
+        <div className="text-2xl font-heading font-extrabold text-slate-900 dark:text-slate-100">
+          {value}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export default function Dashboard() {
+  const { isAdmin, user } = useAuth();
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    api.get("/dashboard/stats").then((r) => setStats(r.data)).catch(() => {});
+  }, []);
+
+  if (!stats) return <div className="text-slate-500">Memuat data...</div>;
+
+  const sc = stats.status_counts || {};
+  const pieData = [
+    { name: "Operasional", value: sc.operasional || 0 },
+    { name: "Perawatan", value: sc.perawatan || 0 },
+    { name: "Rusak", value: sc.rusak || 0 },
+    { name: "Nonaktif", value: sc.nonaktif || 0 },
+  ].filter((d) => d.value > 0);
+
+  return (
+    <div>
+      <PageHeader
+        title="Dashboard"
+        subtitle={`Selamat datang, ${user?.name}. Ringkasan kondisi pemeliharaan mesin.`}
+      />
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard
+          icon={Cog}
+          label="Total Mesin"
+          value={stats.total_machines}
+          tone="bg-sky-100 text-sky-700"
+          testId="stat-total-machines"
+        />
+        <StatCard
+          icon={CheckCircle2}
+          label="Beroperasi"
+          value={sc.operasional || 0}
+          tone="bg-emerald-100 text-emerald-700"
+          testId="stat-operational"
+        />
+        <StatCard
+          icon={CalendarClock}
+          label="Jadwal Jatuh Tempo"
+          value={stats.due_schedules_count}
+          tone="bg-amber-100 text-amber-700"
+          testId="stat-due"
+        />
+        <StatCard
+          icon={AlertTriangle}
+          label="Stok Menipis"
+          value={stats.low_stock_count}
+          tone="bg-rose-100 text-rose-700"
+          testId="stat-lowstock"
+        />
+      </div>
+
+      {isAdmin && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <StatCard
+            icon={Wallet}
+            label="Total Biaya Servis"
+            value={formatRupiah(stats.total_cost)}
+            tone="bg-slate-900 text-white"
+            testId="stat-total-cost"
+          />
+          <StatCard
+            icon={Wrench}
+            label="Total Catatan Servis"
+            value={stats.total_services}
+            tone="bg-slate-100 text-slate-700"
+            testId="stat-total-services"
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card className="p-6">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
+            Status Mesin
+          </h3>
+          {pieData.length === 0 ? (
+            <p className="text-sm text-slate-400">Belum ada data mesin.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={95} label>
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        {isAdmin ? (
+          <Card className="p-6">
+            <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
+              Biaya Servis per Bulan
+            </h3>
+            {(stats.monthly_cost || []).length === 0 ? (
+              <p className="text-sm text-slate-400">Belum ada data biaya.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={stats.monthly_cost}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="month" fontSize={12} />
+                  <YAxis fontSize={12} tickFormatter={(v) => `${v / 1000}k`} />
+                  <Tooltip formatter={(v) => formatRupiah(v)} />
+                  <Line type="monotone" dataKey="cost" stroke="#0284C7" strokeWidth={3} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </Card>
+        ) : (
+          <Card className="p-6 flex flex-col items-center justify-center text-center">
+            <Wallet className="w-10 h-10 text-slate-300 mb-3" />
+            <p className="text-sm text-slate-400">
+              Data biaya servis hanya tersedia untuk Administrator.
+            </p>
+          </Card>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="p-6">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
+            Jadwal Mendesak
+          </h3>
+          <div className="space-y-3">
+            {(stats.due_schedules || []).length === 0 ? (
+              <p className="text-sm text-slate-400">Tidak ada jadwal yang mendekati jatuh tempo.</p>
+            ) : (
+              stats.due_schedules.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0"
+                >
+                  <div>
+                    <div className="text-sm font-semibold">{s.machine_name}</div>
+                    <div className="text-xs text-slate-500">
+                      {s.maintenance_type} • {formatDate(s.due_date)}
+                    </div>
+                  </div>
+                  <StatusBadge status={s.status} />
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
+            Sparepart Stok Menipis
+          </h3>
+          <div className="space-y-3">
+            {(stats.low_stock_items || []).length === 0 ? (
+              <p className="text-sm text-slate-400">Semua stok aman.</p>
+            ) : (
+              stats.low_stock_items.map((i, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2 last:border-0"
+                >
+                  <div>
+                    <div className="text-sm font-semibold">{i.name}</div>
+                    <div className="text-xs text-slate-500 font-mono">{i.code}</div>
+                  </div>
+                  <span className="text-sm font-bold text-rose-600">
+                    {i.stock} / {i.min_stock}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}

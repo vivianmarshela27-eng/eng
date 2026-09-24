@@ -1,0 +1,136 @@
+{
+  "project_name": "Sistem Informasi Pemeliharaan Mesin (SIMIN)",
+  "language": "Bahasa Indonesia",
+  "app_type": "Industrial ERP Maintenance Dashboard",
+  "context_type": "Dashboard / Industrial Management System",
+  "archetype": "ARCHETYPE 2: THE PERFORMANCE PRO & INDUSTRIAL PRECISION",
+  "theme_strategy": "Industrial Slate & Tactical High Contrast (Dark Navy Sidebar + Crisp Clean Content canvas with Slate / Dark Mode Toggle)",
+  "roles": {
+    "admin": {
+      "name": "Administrator (Kepala Bengkel / Supervisor)",
+      "permissions": "Full CRUD access, edit schedules, edit sparepart inventory, update technician assignments, view financial cost reports, approve digital signatures."
+    },
+    "user": {
+      "name": "Operator / User (Teknisi / Operator Pabrik)",
+      "permissions": "Read-only access, complete maintenance check forms, capture digital signature for proof, CANNOT view financial/cost data."
+    }
+  },
+  "typography": {
+    "font_family_heading": "Barlow Condensed, Outfit, sans-serif",
+    "font_family_body": "Inter, system-ui, sans-serif",
+    "font_family_mono": "JetBrains Mono, Source Code Pro, monospace",
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap",
+    "font_hierarchy": {
+      "h1_hero": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight uppercase",
+      "h2_section": "text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100",
+      "h3_subsection": "text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-200",
+      "h4_card_title": "text-base font-semibold text-slate-700 dark:text-slate-300",
+      "body": "text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed",
+      "caption_label": "text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+    }
+  },
+  "colors": {
+    "mode": "Light Canvas with Dark Industrial Navigation + Dark Mode Support",
+    "primary": {
+      "slate_dark": "#0F172A",
+      "industrial_blue": "#0284C7",
+      "amber_alert": "#D97706",
+      "emerald_success": "#059669",
+      "rose_critical": "#E11D48"
+    },
+    "status_badges": {
+      "operasional": "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700",
+      "perawatan": "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-700",
+      "rusak": "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-700",
+      "standby": "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-600"
+    },
+    "neutral_backgrounds": {
+      "app_bg": "bg-slate-50 dark:bg-slate-950",
+      "sidebar_bg": "bg-slate-900 text-slate-100 border-r border-slate-800",
+      "card_bg": "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl",
+      "header_bg": "bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-40"
+    }
+  },
+  "key_features_and_views": [
+    {
+      "id": "login",
+      "title": "Halaman Login & Switch Role Demo",
+      "description": "Form login modern dengan pemilih role cepat (Admin vs User) untuk pengujian instan, indikator kredensial preset, dan backdrop visual pabrik.",
+      "path": "/login"
+    },
+    {
+      "id": "dashboard",
+      "title": "Ringkasan Dashboard (Analitik Utama)",
+      "description": "Statistik KPI utama (Total Mesin, Mesin Beroperasi, Pemeliharaan Jatuh Tempo, Sparepart Menipis, Total Biaya Servis - disembunyikan untuk User), Grafik Status Mesin (Recharts), Grafik Biaya Bulanan, List Jadwal Mendesak.",
+      "path": "/dashboard"
+    },
+    {
+      "id": "machines",
+      "title": "Manajemen Mesin",
+      "description": "Tabel & Grid Katalog Mesin Industri (Kode Mesin, Nama, Lokasi Line, Spesifikasi, Status Operasional, Riwayat Singkat). Admin memiliki Modal Tambah/Edit/Hapus Mesin.",
+      "path": "/machines"
+    },
+    {
+      "id": "schedules",
+      "title": "Jadwal Pemeliharaan (Preventive Maintenance)",
+      "description": "Kalender dan Daftar Jadwal Perawatan Preventif harian/mingguan/bulanan. Status: Terjadwal, Dalam Proses, Selesai, Terlambat. Admin dapat membuat jadwal baru & assign teknisi.",
+      "path": "/schedules"
+    },
+    {
+      "id": "spareparts",
+      "title": "Manajemen Sparepart & Stok",
+      "description": "Daftar Inventaris Suku Cadang Mesin, Stok Minimal dengan Alert Otomatis (Low Stock Warning), Harga per unit (Admin only), Lokasi Rak. Admin dapat update stok & restock.",
+      "path": "/spareparts"
+    },
+    {
+      "id": "technicians",
+      "title": "Manajemen Teknisi",
+      "description": "Profil Teknisi Pabrik, Spesialisasi (Listrik, Mekanik, Hidrolik), Status Kehadiran/Tugas Saat Ini, Kontak, dan Jumlah Work Order Selesai.",
+      "path": "/technicians"
+    },
+    {
+      "id": "repairs",
+      "title": "Perbaikan & Riwayat Servis",
+      "description": "Log Riwayat Perbaikan Mesin & Servis Berkala per Mesin. Detail kerusakan, tindakan perbaikan, sparepart yang diganti, durasi downtime, teknisi penanggung jawab, serta cetak bukti kerja.",
+      "path": "/repairs"
+    },
+    {
+      "id": "reports",
+      "title": "Laporan & Analisa",
+      "description": "Analisis Efisiensi & Breakout Biaya Servis, Chart Tren Kerusakan Mesin, Filter Berdasarkan Periode & Lokasi Line, serta Tombol Ekspor PDF / Print Laporan.",
+      "path": "/reports"
+    },
+    {
+      "id": "digital_signature_form",
+      "title": "Form Tanda Tangan Digital (Bukti Selesai Preventif/Perbaikan)",
+      "description": "Canvas Tanda Tangan Interaktif untuk Operator & Teknisi setelah pekerjaan selesai, dilengkapi Checklist Verifikasi Pekerjaan, Foto Bukti, dan Generasi Dokumen BAP (Berita Acara Pemeliharaan).",
+      "path": "/signature-form"
+    }
+  ],
+  "image_urls": {
+    "login_hero": "https://images.unsplash.com/photo-1598299803204-b73796f43289?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHw0fHxpbmR1c3RyaWFsJTIwZmFjdG9yeSUyMG1hY2hpbmVyeSUyMG1haW50ZW5hbmNlfGVufDB8fHx8MTc5MDIxNjc1OHww&ixlib=rb-4.1.0&q=85",
+    "factory_hall": "https://images.unsplash.com/photo-1717386255767-52643970d483?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwzfHxpbmR1c3RyaWFsJTIwZmFjdG9yeSUyMG1hY2hpbmVyeSUyMG1haW50ZW5hbmNlfGVufDB8fHx8MTc5MDIxNjc1OHww&ixlib=rb-4.1.0&q=85",
+    "heavy_machine_1": "https://images.unsplash.com/photo-1717386255773-1e3037c81788?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwxfHxpbmR1c3RyaWFsJTIwZmFjdG9yeSUyMG1hY2hpbmVyeSUyMG1haW50ZW5hbmNlfGVufDB8fHx8MTc5MDIxNjc1OHww&ixlib=rb-4.1.0&q=85",
+    "electrical_panel": "https://images.unsplash.com/photo-1716191300020-b52dec5b70a8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxpbmR1c3RyaWFsJTIwZmFjdG9yeSUyMG1hY2hpbmVyeSUyMG1haW50ZW5hbmNlfGVufDB8fHx8MTc5MDIxNjc1OHww&ixlib=rb-4.1.0&q=85",
+    "cnc_gears": "https://images.pexels.com/photos/12951623/pexels-photo-12951623.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "technician_control": "https://images.pexels.com/photos/35072831/pexels-photo-35072831.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "technicians_team": "https://images.pexels.com/photos/4281613/pexels-photo-4281613.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    "technician_working": "https://images.unsplash.com/photo-1632914146475-bfe6fa6b2a12?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHw0fHxpbmR1c3RyaWFsJTIwdGVjaG5pY2lhbiUyMHdvcmtpbmclMjBtYWNoaW5lfGVufDB8fHx8MTc5MDIxNjc1OHww&ixlib=rb-4.1.0&q=85"
+  },
+  "component_guidelines": {
+    "signature_canvas": "Use HTML5 Canvas or react-signature-canvas pattern to allow smooth mouse/touch signing for both Operator and Technician with Clear and Confirm buttons.",
+    "role_toggle_banner": "Provide a quick floating or top bar role switcher ('Aktifkan Mode: Admin / User') so users and reviewers can seamlessly test Admin privilege controls and User read-only restrictions.",
+    "data_testids": "All buttons, inputs, tables, role switches, signature canvases, and export buttons MUST have explicit data-testid attributes (e.g. data-testid='login-submit-button', data-testid='role-toggle-admin', data-testid='signature-operator-canvas', data-testid='export-pdf-button', data-testid='add-machine-button').",
+    "charts": "Use Recharts / Shadcn Chart components with custom tooltip formatting in IDR (Rupiah) for financial graphs (visible only in Admin mode) and operational counts.",
+    "modals": "Use Shadcn Dialog for add/edit operations, ensure focus trapping, clear labels, and primary buttons in blue/slate.",
+    "toasts": "Use Sonner for operational feedback (e.g., 'Mesin berhasil ditambahkan', 'Jadwal pemeliharaan telah diperbarui', 'Tanda tangan berhasil disimpan')."
+  },
+  "instructions_to_main_agent": [
+    "Ensure all text is written in natural, clean Bahasa Indonesia appropriate for an industrial manufacturing plant.",
+    "Strictly enforce Role-Based Access: In 'User' mode, edit buttons must be disabled or hidden, and cost information (harga sparepart, total biaya servis, estimasi biaya) MUST show as '*** (Akses Terbatas)' or be completely hidden.",
+    "Make sure the digital signature component allows clear drawing with mouse or touch screen, clear canvas button, and saves signature as data URL into the service report.",
+    "Include sample seed data in Bahasa Indonesia for machines (e.g., CNC Milling Deckel Maho, Compressor Screw Atlas Copco, Boiler Stoker 10 Ton, Injection Molding KraussMaffei), spareparts (O-Ring Viton, Bearing SKF 6205, Hydraulic Oil ISO VG 48, Filter Udara Heavy Duty), and technicians (Budi Santoso - Lead Mekanik, Agus Setiawan - Teknisi Listrik, etc.).",
+    "Ensure the layout is highly responsive and clean with a dark tactical left sidebar, crisp white/slate main content cards, clear badges, and high accessibility contrast.",
+    "Add 'data-testid' to every interactive button, tab, card, and form element."
+  ]
+}
