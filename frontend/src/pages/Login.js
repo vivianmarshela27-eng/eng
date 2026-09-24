@@ -35,7 +35,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-slate-950" data-testid="login-page">
+    <div
+      className="min-h-screen flex items-center justify-center p-4 sm:p-6 bg-slate-950 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/login-page-bg.jpg')" }}
+      data-testid="login-page"
+    >
       <div
         className="relative w-full max-w-md rounded-2xl overflow-hidden border border-white/15 shadow-2xl bg-white bg-no-repeat bg-center bg-cover"
         style={{ backgroundImage: "url('/login-bg.png')" }}
