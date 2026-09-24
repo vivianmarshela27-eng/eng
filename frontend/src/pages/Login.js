@@ -4,8 +4,7 @@ import { useAuth, formatApiErrorDetail } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { Loader2, ShieldCheck, Cog, User } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -33,11 +32,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const quickFill = (un, pw) => {
-    setUsername(un);
-    setPassword(pw);
   };
 
   return (
@@ -131,38 +125,6 @@ export default function Login() {
               Masuk
             </Button>
           </form>
-
-          <Card className="mt-8 p-4 bg-slate-900 border-slate-800">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4" /> Akun Demo (klik untuk isi)
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => quickFill("admin", "Admin#2026")}
-                data-testid="quick-admin"
-                className="flex items-center gap-2 text-left p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
-              >
-                <Cog className="w-4 h-4 text-sky-400" />
-                <span>
-                  <span className="block font-semibold">Admin</span>
-                  <span className="text-slate-400">Akses penuh</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => quickFill("operator", "Operator#2026")}
-                data-testid="quick-user"
-                className="flex items-center gap-2 text-left p-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
-              >
-                <User className="w-4 h-4 text-emerald-400" />
-                <span>
-                  <span className="block font-semibold">User</span>
-                  <span className="text-slate-400">Lihat saja</span>
-                </span>
-              </button>
-            </div>
-          </Card>
         </div>
       </div>
     </div>
