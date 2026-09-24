@@ -40,7 +40,7 @@ export default function Login() {
       style={{ backgroundImage: "url('/login-bg.png')" }}
       data-testid="login-page"
     >
-      <div className="w-full max-w-md rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-2xl p-8 sm:p-10">
+      <div className="w-full max-w-md rounded-2xl bg-slate-950/45 backdrop-blur-2xl border border-white/15 shadow-2xl p-8 sm:p-10">
         <h1 className="font-heading text-3xl font-extrabold uppercase text-white tracking-tight">
           Masuk
         </h1>
