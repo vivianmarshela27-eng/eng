@@ -52,8 +52,8 @@ export default function Layout() {
         data-testid="sidebar"
       >
         <div className="h-20 flex items-center gap-3 px-6 border-b border-slate-800">
-          <div className="w-11 h-11 rounded-xl bg-sky-600 flex items-center justify-center font-heading font-extrabold text-xl">
-            SE
+          <div className="w-11 h-11 rounded-xl bg-white overflow-hidden flex items-center justify-center shrink-0">
+            <img src="/logo.png" alt="Satria Engineering" className="w-full h-full object-contain p-0.5" />
           </div>
           <div>
             <div className="font-heading font-extrabold text-lg tracking-wide leading-none">
