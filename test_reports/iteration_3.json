@@ -1,0 +1,20 @@
+{
+  "summary": "Backend regression after deployment-readiness changes (CORS_ORIGINS env, load_dotenv override=False, list_users projection). Created /app/backend/tests/test_deploy_regression.py with 17 pytest cases covering: admin/user cookie-session login + GET /api/auth/me, admin GET /api/users no longer leaks password_hash/password, user GET /api/spareparts hides price / GET /api/services hides cost while admin still sees them, role gating (user 403 on POST /api/machines, POST /api/checksheet-templates, PUT /api/schedules/{id}/checksheet), GET /api/dashboard/stats includes total_cost/monthly_cost for admin and excludes them for user, seeded checksheet templates present, and CORS (preflight returns access-control-allow-credentials=true + POST in allow-methods; simple GET with Origin returns 200 + allow-credentials=true). Result: 17/17 passed. Also re-ran existing /app/backend/tests/test_checksheet.py — no regressions expected (module already at 100% in iteration_2).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_deploy_regression.py", "/app/test_reports/pytest/deploy_regression.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/.env has CORS_ORIGINS=\"*\" — combined with allow_credentials=True this leaves the wildcard entry in _allow_origins list. Starlette will not echo credentials for '*' so it is effectively neutral (real allow relies on FRONTEND_URL/localhost appended after), but it is misleading. Recommend setting CORS_ORIGINS to an explicit comma-separated list of prod origins for deployment clarity.",
+    "list_users projection is now safe. Consider adding a Pydantic response_model (UserPublic) to make the contract explicit and prevent future regressions instead of relying on manual projection dicts.",
+    "Preflight through Cloudflare returns HTTP 400 on the body but valid CORS response headers — functional, but investigate whether the app-level CORSMiddleware is being bypassed by an edge/CF layer for OPTIONS; if so, edge CORS config should be kept in sync with backend CORS_ORIGINS."
+  ],
+  "updated_files": ["/app/backend/tests/test_deploy_regression.py"],
+  "success_rate": {"backend": "100%", "frontend": "not tested (skipped per request)"},
+  "test_credentials": "Admin: admin / Admin#2026 ; User: operator / Operator#2026",
+  "seed_data_creation": "None — regression suite is read-only against existing seeded data.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression suite for deploy-readiness lives at /app/backend/tests/test_deploy_regression.py (17 cases, all passing). Run with: REACT_APP_BACKEND_URL=<url> pytest /app/backend/tests/test_deploy_regression.py -o addopts='' -v. Existing test_checksheet.py still relevant. Note pytest.ini has custom addopts; use -o addopts='' when running a single file.",
+  "rca of the issue": "N/A — no defects. CORS/env changes are working: httpOnly cookies set on login, /api/users no longer returns password_hash, role-based cost/price stripping intact, dashboard stats gated correctly."
+}
