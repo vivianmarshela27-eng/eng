@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / '.env', override=False)
 
 import os
 import logging
@@ -199,7 +199,7 @@ async def refresh_token_endpoint(request: Request, response: Response):
 # ------------------------------------------------------------------ user management (admin)
 @api.get("/users")
 async def list_users(user: dict = Depends(require_admin)):
-    users = await db.users.find().sort("created_at", 1).to_list(500)
+    users = await db.users.find({}, {"username": 1, "name": 1, "role": 1, "created_at": 1}).sort("created_at", 1).to_list(500)
     return [public_user(u) for u in users]
 
 
@@ -782,9 +782,18 @@ async def root():
 
 app.include_router(api)
 
+_cors_env = os.environ.get("CORS_ORIGINS", "*").strip()
+if _cors_env and _cors_env != "*":
+    _allow_origins = [o.strip() for o in _cors_env.split(",") if o.strip()]
+else:
+    _allow_origins = []
+for _extra in [FRONTEND_URL, "http://localhost:3000"]:
+    if _extra and _extra not in _allow_origins:
+        _allow_origins.append(_extra)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, "http://localhost:3000"],
+    allow_origins=_allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
