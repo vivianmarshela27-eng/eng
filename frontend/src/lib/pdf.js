@@ -150,20 +150,23 @@ export async function generateChecksheetPDF(sch) {
 
   const RES = { ok: "OK", not_ok: "Tidak OK" };
   const items = cs.items || [];
+  let _n = 0;
   autoTable(doc, {
     startY: y,
-    head: [["No", "Item Pemeriksaan", "Sub Item", "Nilai", "Satuan", "Standar", "Hasil", "Catatan"]],
-    body: items.map((it, i) => [
-      String(i + 1), it.item || "-", it.sub_item || "-", it.value || "-", it.unit || "-",
+    head: [["No", "Item Pemeriksaan", "Nilai", "Satuan", "Standar", "Hasil", "Catatan"]],
+    body: items.map((it) => [
+      it.is_sub ? "" : String(++_n),
+      it.is_sub ? `      ${it.item || "-"}` : (it.item || "-"),
+      it.value || "-", it.unit || "-",
       (it.std_min || it.std_max) ? `${it.std_min || ""} - ${it.std_max || ""}` : "-",
       RES[it.result] || "-", it.note || "-",
     ]),
     theme: "grid",
     headStyles: { fillColor: [2, 132, 199] },
     styles: { fontSize: 8, cellPadding: 1.5 },
-    columnStyles: { 0: { cellWidth: 10 }, 6: { cellWidth: 18 } },
+    columnStyles: { 0: { cellWidth: 10 }, 5: { cellWidth: 18 } },
     didParseCell: (d) => {
-      if (d.section === "body" && d.column.index === 6) {
+      if (d.section === "body" && d.column.index === 5) {
         const raw = items[d.row.index]?.result;
         if (raw === "ok") d.cell.styles.textColor = [5, 150, 105];
         if (raw === "not_ok") d.cell.styles.textColor = [225, 29, 72];

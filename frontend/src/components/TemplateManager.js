@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, ClipboardList } from "lucide-react";
+import { Plus, Trash2, Pencil, ClipboardList, CornerDownRight } from "lucide-react";
 import { toast } from "sonner";
 
 const emptyTpl = { name: "", machine_type: "", items: [] };
-const emptyItem = { item: "", sub_item: "", unit: "", std_min: "", std_max: "" };
+const emptyItem = { item: "", is_sub: false, unit: "", std_min: "", std_max: "" };
 
 export default function TemplateManager({ open, onOpenChange, templates, onChanged }) {
   const [editing, setEditing] = useState(null); // null=list, else template object
@@ -19,6 +19,7 @@ export default function TemplateManager({ open, onOpenChange, templates, onChang
   const backToList = () => { setEditing(null); };
 
   const addItem = () => setForm((f) => ({ ...f, items: [...f.items, { ...emptyItem }] }));
+  const addSubItem = () => setForm((f) => ({ ...f, items: [...f.items, { ...emptyItem, is_sub: true }] }));
   const updItem = (idx, key, val) => setForm((f) => ({ ...f, items: f.items.map((it, i) => i === idx ? { ...it, [key]: val } : it) }));
   const delItem = (idx) => setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
@@ -78,19 +79,26 @@ export default function TemplateManager({ open, onOpenChange, templates, onChang
             </div>
             <div className="flex items-center justify-between">
               <Label>Item Standar</Label>
-              <Button variant="outline" size="sm" onClick={addItem} data-testid="template-add-item"><Plus className="w-4 h-4 mr-1" /> Item</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={addItem} data-testid="template-add-item"><Plus className="w-4 h-4 mr-1" /> Item</Button>
+                <Button variant="outline" size="sm" onClick={addSubItem} data-testid="template-add-subitem"><CornerDownRight className="w-4 h-4 mr-1" /> Sub Item</Button>
+              </div>
             </div>
             <div className="overflow-x-auto border rounded-lg">
               <table className="w-full text-sm">
                 <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase text-slate-500">
-                  <tr><th className="p-2 text-left min-w-[180px]">Item</th><th className="p-2 text-left min-w-[160px]">Sub Item</th><th className="p-2 text-left w-20">Satuan</th><th className="p-2 text-left w-16">Min</th><th className="p-2 text-left w-16">Max</th><th className="p-2 w-10"></th></tr>
+                  <tr><th className="p-2 text-left min-w-[220px]">Item</th><th className="p-2 text-left w-20">Satuan</th><th className="p-2 text-left w-16">Min</th><th className="p-2 text-left w-16">Max</th><th className="p-2 w-10"></th></tr>
                 </thead>
                 <tbody>
-                  {form.items.length === 0 && <tr><td colSpan={6} className="text-center text-slate-400 py-4">Tambah item standar.</td></tr>}
+                  {form.items.length === 0 && <tr><td colSpan={5} className="text-center text-slate-400 py-4">Tambah item standar.</td></tr>}
                   {form.items.map((it, idx) => (
-                    <tr key={idx} className="border-t">
-                      <td className="p-2"><Input value={it.item} onChange={(e) => updItem(idx, "item", e.target.value)} className="h-9" data-testid={`template-item-${idx}`} /></td>
-                      <td className="p-2"><Input value={it.sub_item} onChange={(e) => updItem(idx, "sub_item", e.target.value)} className="h-9" data-testid={`template-subitem-${idx}`} /></td>
+                    <tr key={idx} className={`border-t ${it.is_sub ? "bg-slate-50/60 dark:bg-slate-900/40" : ""}`}>
+                      <td className="p-2">
+                        <div className={it.is_sub ? "flex items-center gap-1.5 pl-6" : ""}>
+                          {it.is_sub && <CornerDownRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                          <Input value={it.item} onChange={(e) => updItem(idx, "item", e.target.value)} className="h-9" placeholder={it.is_sub ? "Sub item" : ""} data-testid={`template-item-${idx}`} />
+                        </div>
+                      </td>
                       <td className="p-2"><Input value={it.unit} onChange={(e) => updItem(idx, "unit", e.target.value)} className="h-9" /></td>
                       <td className="p-2"><Input value={it.std_min} onChange={(e) => updItem(idx, "std_min", e.target.value)} className="h-9" /></td>
                       <td className="p-2"><Input value={it.std_max} onChange={(e) => updItem(idx, "std_max", e.target.value)} className="h-9" /></td>

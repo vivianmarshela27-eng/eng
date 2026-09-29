@@ -8,10 +8,10 @@ import { generateChecksheetPDF } from "@/lib/pdf";
 import { formatDate } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle2, XCircle } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle2, XCircle, CornerDownRight } from "lucide-react";
 import { toast } from "sonner";
 
-const emptyItem = { item: "", sub_item: "", value: "", unit: "", std_min: "", std_max: "", result: "", note: "" };
+const emptyItem = { item: "", is_sub: false, value: "", unit: "", std_min: "", std_max: "", result: "", note: "" };
 
 // Suggest OK/Tidak OK when a numeric value falls outside the standard range.
 function suggestResult(it) {
@@ -49,7 +49,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
     setTplId(id);
     const tpl = templates.find((t) => t.id === id);
     if (!tpl) return;
-    setItems(tpl.items.map((i) => ({ ...emptyItem, item: i.item, sub_item: i.sub_item || "", unit: i.unit || "", std_min: i.std_min || "", std_max: i.std_max || "" })));
+    setItems(tpl.items.map((i) => ({ ...emptyItem, item: i.item, is_sub: !!i.is_sub, unit: i.unit || "", std_min: i.std_min || "", std_max: i.std_max || "" })));
     toast.success("Item template dimuat");
   };
 
@@ -62,6 +62,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
     }));
   };
   const addRow = () => setItems((p) => [...p, { ...emptyItem }]);
+  const addSubRow = () => setItems((p) => [...p, { ...emptyItem, is_sub: true }]);
   const removeRow = (idx) => setItems((p) => p.filter((_, i) => i !== idx));
   const moveRow = (idx, dir) => setItems((p) => {
     const arr = [...p];
@@ -73,6 +74,10 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
 
   const okCount = items.filter((i) => i.result === "ok").length;
   const notOkCount = items.filter((i) => i.result === "not_ok").length;
+
+  // Running numbers: only main items are numbered, sub items are blank.
+  let _n = 0;
+  const numbers = items.map((it) => (it.is_sub ? "" : ++_n));
 
   const buildData = () => ({
     items, operator_name: operatorName, technician_name: technicianName,
@@ -112,6 +117,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
               </Select>
             </div>
             <Button variant="outline" onClick={addRow} data-testid="checksheet-add-row"><Plus className="w-4 h-4 mr-1" /> Tambah Item</Button>
+            <Button variant="outline" onClick={addSubRow} data-testid="checksheet-add-subrow"><CornerDownRight className="w-4 h-4 mr-1" /> Tambah Sub Item</Button>
           </div>
         )}
 
@@ -126,8 +132,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
             <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="p-2 text-left w-8">#</th>
-                <th className="p-2 text-left min-w-[180px]">Item Pemeriksaan</th>
-                <th className="p-2 text-left min-w-[160px]">Sub Item</th>
+                <th className="p-2 text-left min-w-[220px]">Item Pemeriksaan</th>
                 <th className="p-2 text-left w-24">Nilai</th>
                 <th className="p-2 text-left w-20">Satuan</th>
                 <th className="p-2 text-left w-32">Standar (min-max)</th>
@@ -138,20 +143,18 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
             </thead>
             <tbody>
               {items.length === 0 && (
-                <tr><td colSpan={isAdmin ? 9 : 8} className="text-center text-slate-400 py-6">Belum ada item. {isAdmin ? "Muat template atau tambah item." : ""}</td></tr>
+                <tr><td colSpan={isAdmin ? 8 : 7} className="text-center text-slate-400 py-6">Belum ada item. {isAdmin ? "Muat template atau tambah item." : ""}</td></tr>
               )}
               {items.map((it, idx) => (
-                <tr key={idx} className="border-t align-top" data-testid={`checksheet-row-${idx}`}>
-                  <td className="p-2 text-slate-400">{idx + 1}</td>
+                <tr key={idx} className={`border-t align-top ${it.is_sub ? "bg-slate-50/60 dark:bg-slate-900/40" : ""}`} data-testid={`checksheet-row-${idx}`}>
+                  <td className="p-2 text-slate-400">{it.is_sub ? "" : numbers[idx]}</td>
                   <td className="p-2">
-                    {isAdmin
-                      ? <Input value={it.item} onChange={(e) => update(idx, "item", e.target.value)} className="h-9" data-testid={`checksheet-item-${idx}`} />
-                      : <span>{it.item || "-"}</span>}
-                  </td>
-                  <td className="p-2">
-                    {isAdmin
-                      ? <Input value={it.sub_item} onChange={(e) => update(idx, "sub_item", e.target.value)} className="h-9" data-testid={`checksheet-subitem-${idx}`} />
-                      : <span>{it.sub_item || "-"}</span>}
+                    <div className={it.is_sub ? "flex items-center gap-1.5 pl-6" : ""}>
+                      {it.is_sub && <CornerDownRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
+                      {isAdmin
+                        ? <Input value={it.item} onChange={(e) => update(idx, "item", e.target.value)} className="h-9" placeholder={it.is_sub ? "Sub item" : ""} data-testid={`checksheet-item-${idx}`} />
+                        : <span className={it.is_sub ? "text-slate-600 dark:text-slate-300" : "font-medium"}>{it.item || "-"}</span>}
+                    </div>
                   </td>
                   <td className="p-2">
                     {isAdmin
