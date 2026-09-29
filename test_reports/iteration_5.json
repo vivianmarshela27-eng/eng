@@ -1,0 +1,24 @@
+{
+  "summary": "Retested checksheet restructure where 'sub_item' string is replaced by boolean 'is_sub'. Updated /app/backend/tests/test_checksheet.py to assert is_sub persistence on templates and schedule checksheet (added main+sub rows and validated bool + ordering via GET). All 10 pytest cases pass (checksheet_results.xml). Frontend Playwright: /schedules -> Checksheet dialog for admin shows 'Tambah Item' + 'Tambah Sub Item' buttons; loaded Kompresor template (5 items), added 1 main (#6) + 1 sub (# blank). Numbering only counts main items and remains sequential [1..6]. Save persists; reopen shows the added main with #6 and the sub as blank # with same text. Table has no 'Sub Item' column. Cetak BAP triggers PDF download without JS errors. Kelola Template: created TEST_ISUB_TPL with Main A / Sub A1 / Main B; sub row wrapper has 'pl-6' indent class; reload shows same items in order; deleted. Operator user (operator): dialog has 0 add-row / 0 add-subrow / 0 save / 1 pdf; no item inputs; 7 rows visible with sub row shown indented as plain text; manage-templates and schedule add buttons hidden. Backend role gating unchanged (403 for operator PUT checksheet & POST/PUT/DELETE templates).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": [
+    {"screen": "ChecksheetDialog / TemplateManager", "issues": ["DialogContent still missing aria-describedby (a11y warning, non-blocking; carried over)"]}
+  ]},
+  "test_report_links": ["/app/backend/tests/test_checksheet.py", "/app/test_reports/pytest/checksheet_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TemplateItem.is_sub and ChecksheetItem.is_sub default to False -> older seeded docs without the field are safely treated as main items.",
+    "pdf.js head is [No, Item Pemeriksaan, Nilai, Satuan, Standar, Hasil, Catatan]; didParseCell colors column index 5 (Hasil) — consistent with restructure.",
+    "ChecksheetDialog numbers[] is computed with a closure counter that increments only for main items — correct 1..N regardless of sub position.",
+    "Loading a legacy template into checksheet spreads existing fields via emptyItem then overrides — is_sub defaults to false when absent, matching backend defaults.",
+    "Old /app/backend/tests/test_simin_api.py (email-based login) still present from earlier iterations; consider deletion (non-blocking)."
+  ],
+  "updated_files": ["/app/backend/tests/test_checksheet.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin: admin / Admin#2026 ; User: operator / Operator#2026",
+  "seed_data_creation": "Ephemeral TEST_ISUB_TPL created and deleted via UI. Added extra rows to seeded GOLIVE schedule's checksheet (harmless demo data). Backend pytest creates & deletes its own TEST_ machine+schedule per class fixture.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Login testids: login-username-input, login-password-input, login-submit-button. Schedules row Checksheet button uses data-testid='checksheet-schedule-<id>'. In ChecksheetDialog the # cell of a sub row is empty; assert inner_text().strip()==''. Sub row wrapper (both dialog and template manager) has 'pl-6' Tailwind class + CornerDownRight icon. Backend run: `REACT_APP_BACKEND_URL=<url> pytest /app/backend/tests/test_checksheet.py -o addopts='' -v` -> 10/10 in ~3s.",
+  "rca of the issue": "N/A — restructure from sub_item column to boolean is_sub row is correctly implemented across backend Pydantic models, ChecksheetDialog numbering & row rendering, TemplateManager add buttons + indent, and PDF (No blank & indented item text for sub rows, Sub Item column removed)."
+}

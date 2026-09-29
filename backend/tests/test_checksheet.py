@@ -67,29 +67,36 @@ class TestChecksheetTemplates:
 
     def test_admin_template_crud(self, admin_session):
         payload = {"name": f"TEST_{uuid.uuid4().hex[:6]}", "machine_type": "Test",
-                   "items": [{"item": "Suhu", "sub_item": "Bearing depan", "unit": "C", "std_min": "10", "std_max": "50"}]}
+                   "items": [
+                       {"item": "Suhu", "is_sub": False, "unit": "C", "std_min": "10", "std_max": "50"},
+                       {"item": "Bearing depan", "is_sub": True, "unit": "C", "std_min": "10", "std_max": "50"},
+                   ]}
         r = admin_session.post(f"{API}/checksheet-templates", json=payload)
         assert r.status_code == 200
         created = r.json()
         assert created["name"] == payload["name"]
-        assert len(created["items"]) == 1
-        assert created["items"][0].get("sub_item") == "Bearing depan"
+        assert len(created["items"]) == 2
+        assert created["items"][0].get("is_sub") is False
+        assert created["items"][1].get("is_sub") is True
+        assert created["items"][1]["item"] == "Bearing depan"
         assert "id" in created
         tid = created["id"]
 
         # verify GET persistence
         listing = admin_session.get(f"{API}/checksheet-templates").json()
         got = next(t for t in listing if t["id"] == tid)
-        assert got["items"][0].get("sub_item") == "Bearing depan"
+        assert got["items"][1].get("is_sub") is True
+        assert got["items"][0].get("is_sub") is False
 
-        # update - add second item with sub_item too
+        # update - add a main item; ensure is_sub persists per item
         payload["name"] = payload["name"] + "_upd"
-        payload["items"].append({"item": "Tekanan", "sub_item": "Line 1", "unit": "bar", "std_min": "1", "std_max": "3"})
+        payload["items"].append({"item": "Tekanan", "is_sub": False, "unit": "bar", "std_min": "1", "std_max": "3"})
         r = admin_session.put(f"{API}/checksheet-templates/{tid}", json=payload)
         assert r.status_code == 200
         assert r.json()["name"].endswith("_upd")
-        assert len(r.json()["items"]) == 2
-        assert r.json()["items"][1].get("sub_item") == "Line 1"
+        assert len(r.json()["items"]) == 3
+        assert r.json()["items"][2].get("is_sub") is False
+        assert r.json()["items"][1].get("is_sub") is True
 
         # delete
         r = admin_session.delete(f"{API}/checksheet-templates/{tid}")
@@ -119,9 +126,13 @@ class TestScheduleChecksheet:
     def test_admin_save_checksheet_and_persist(self, admin_session, schedule_id):
         payload = {
             "items": [
-                {"item": "Tekanan", "sub_item": "Line utama", "value": "3", "unit": "bar", "std_min": "2", "std_max": "5",
+                {"item": "Tekanan", "is_sub": False, "value": "3", "unit": "bar", "std_min": "2", "std_max": "5",
                  "result": "ok", "note": ""},
-                {"item": "Suhu", "sub_item": "Bearing belakang", "value": "90", "unit": "C", "std_min": "40", "std_max": "80",
+                {"item": "Line utama", "is_sub": True, "value": "3", "unit": "bar", "std_min": "", "std_max": "",
+                 "result": "ok", "note": ""},
+                {"item": "Suhu", "is_sub": False, "value": "90", "unit": "C", "std_min": "40", "std_max": "80",
+                 "result": "not_ok", "note": "over"},
+                {"item": "Bearing belakang", "is_sub": True, "value": "90", "unit": "C", "std_min": "", "std_max": "",
                  "result": "not_ok", "note": "over"},
             ],
             "operator_name": "TEST_Op",
@@ -131,24 +142,26 @@ class TestScheduleChecksheet:
         }
         r = admin_session.put(f"{API}/schedules/{schedule_id}/checksheet", json=payload)
         assert r.status_code == 200, r.text
-        # response contains the schedule with checksheet field
         data = r.json()
         assert "checksheet" in data
         cs = data["checksheet"]
         assert cs["operator_name"] == "TEST_Op"
         assert cs["technician_name"] == "TEST_Tek"
-        assert len(cs["items"]) == 2
+        assert len(cs["items"]) == 4
         assert cs["items"][0]["result"] == "ok"
-        assert cs["items"][1]["result"] == "not_ok"
-        assert cs["items"][0].get("sub_item") == "Line utama"
-        assert cs["items"][1].get("sub_item") == "Bearing belakang"
+        assert cs["items"][2]["result"] == "not_ok"
+        assert cs["items"][0]["is_sub"] is False
+        assert cs["items"][1]["is_sub"] is True
+        assert cs["items"][1]["item"] == "Line utama"
+        assert cs["items"][3]["is_sub"] is True
 
         # verify via GET /schedules
         listing = admin_session.get(f"{API}/schedules").json()
         s = next(x for x in listing if x["id"] == schedule_id)
         assert s["checksheet"]["operator_name"] == "TEST_Op"
-        assert len(s["checksheet"]["items"]) == 2
-        assert s["checksheet"]["items"][0].get("sub_item") == "Line utama"
+        assert len(s["checksheet"]["items"]) == 4
+        assert s["checksheet"]["items"][1]["is_sub"] is True
+        assert s["checksheet"]["items"][0]["is_sub"] is False
 
     def test_user_cannot_save_checksheet(self, user_session, schedule_id):
         r = user_session.put(f"{API}/schedules/{schedule_id}/checksheet",
