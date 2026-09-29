@@ -427,6 +427,7 @@ async def delete_schedule(item_id: str, user: dict = Depends(require_admin)):
 # ------------------------------------------------------------------ Checksheet Templates
 class TemplateItem(BaseModel):
     item: str = ""
+    sub_item: Optional[str] = ""
     unit: Optional[str] = ""
     std_min: Optional[str] = ""
     std_max: Optional[str] = ""
@@ -471,6 +472,7 @@ async def delete_template(item_id: str, user: dict = Depends(require_admin)):
 # ------------------------------------------------------------------ Schedule Checksheet
 class ChecksheetItem(BaseModel):
     item: str = ""
+    sub_item: Optional[str] = ""
     value: Optional[str] = ""
     unit: Optional[str] = ""
     std_min: Optional[str] = ""

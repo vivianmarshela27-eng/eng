@@ -11,7 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
-const emptyItem = { item: "", value: "", unit: "", std_min: "", std_max: "", result: "", note: "" };
+const emptyItem = { item: "", sub_item: "", value: "", unit: "", std_min: "", std_max: "", result: "", note: "" };
 
 // Suggest OK/Tidak OK when a numeric value falls outside the standard range.
 function suggestResult(it) {
@@ -49,7 +49,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
     setTplId(id);
     const tpl = templates.find((t) => t.id === id);
     if (!tpl) return;
-    setItems(tpl.items.map((i) => ({ ...emptyItem, item: i.item, unit: i.unit || "", std_min: i.std_min || "", std_max: i.std_max || "" })));
+    setItems(tpl.items.map((i) => ({ ...emptyItem, item: i.item, sub_item: i.sub_item || "", unit: i.unit || "", std_min: i.std_min || "", std_max: i.std_max || "" })));
     toast.success("Item template dimuat");
   };
 
@@ -126,7 +126,8 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
             <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="p-2 text-left w-8">#</th>
-                <th className="p-2 text-left min-w-[200px]">Item Pemeriksaan</th>
+                <th className="p-2 text-left min-w-[180px]">Item Pemeriksaan</th>
+                <th className="p-2 text-left min-w-[160px]">Sub Item</th>
                 <th className="p-2 text-left w-24">Nilai</th>
                 <th className="p-2 text-left w-20">Satuan</th>
                 <th className="p-2 text-left w-32">Standar (min-max)</th>
@@ -137,7 +138,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
             </thead>
             <tbody>
               {items.length === 0 && (
-                <tr><td colSpan={isAdmin ? 8 : 7} className="text-center text-slate-400 py-6">Belum ada item. {isAdmin ? "Muat template atau tambah item." : ""}</td></tr>
+                <tr><td colSpan={isAdmin ? 9 : 8} className="text-center text-slate-400 py-6">Belum ada item. {isAdmin ? "Muat template atau tambah item." : ""}</td></tr>
               )}
               {items.map((it, idx) => (
                 <tr key={idx} className="border-t align-top" data-testid={`checksheet-row-${idx}`}>
@@ -146,6 +147,11 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
                     {isAdmin
                       ? <Input value={it.item} onChange={(e) => update(idx, "item", e.target.value)} className="h-9" data-testid={`checksheet-item-${idx}`} />
                       : <span>{it.item || "-"}</span>}
+                  </td>
+                  <td className="p-2">
+                    {isAdmin
+                      ? <Input value={it.sub_item} onChange={(e) => update(idx, "sub_item", e.target.value)} className="h-9" data-testid={`checksheet-subitem-${idx}`} />
+                      : <span>{it.sub_item || "-"}</span>}
                   </td>
                   <td className="p-2">
                     {isAdmin
