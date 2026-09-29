@@ -1,0 +1,24 @@
+{
+  "summary": "Tested the new 'Sub Item' column enhancement (backend + frontend). Backend: extended /app/backend/tests/test_checksheet.py to assert sub_item persistence on POST/PUT /api/checksheet-templates (create with sub_item='Bearing depan' + update adding second item sub_item='Line 1' — both returned & re-fetched via GET list) and on PUT /api/schedules/{id}/checksheet (sub_item='Line utama' & 'Bearing belakang' persisted and read back via GET /api/schedules). All 10 pytest cases in test_checksheet.py passed (checksheet_results.xml). Frontend: Playwright — TemplateManager 'Sub Item' column present, template-subitem-0 input persists on save & reload (verified with TEST_SubItem_* template, then deleted). ChecksheetDialog admin: loading 'Checksheet Kompresor Udara' template populates 5 rows including sub_item; typing 'Kompresor A - Line 1' and 'Head 1' into checksheet-subitem-0/1 and saving persists — reopen shows both values retained; auto-suggest OK for value=7 (range 6-8) works; Cetak BAP triggers PDF download 'BAP-Checksheet-GOLIVE--.pdf' with no JS errors. Operator user view: Sub Item column header renders (as 'SUB ITEM' via CSS uppercase); sub_item values visible as plain text; 0 subitem inputs, 0 save button, 0 template select, 1 Cetak BAP button; manage-templates and add-schedule buttons hidden. Role gating retained via pytest.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": [
+    {"screen": "ChecksheetDialog / TemplateManager", "issues": ["DialogContent still missing aria-describedby (a11y warning, non-blocking, carried over from iteration_2)", "SignaturePad canvas Canvas2D getImageData warning (perf, non-blocking, carried over)"]}
+  ]},
+  "test_report_links": ["/app/backend/tests/test_checksheet.py", "/app/test_reports/pytest/checksheet_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "TemplateItem.sub_item and ChecksheetItem.sub_item are Optional[str] with default '' — safe backward compat with older docs.",
+    "pdf.js head order [No, Item Pemeriksaan, Sub Item, Nilai, Satuan, Standar, Hasil, Catatan] matches didParseCell column index 6 for Hasil coloring — consistent.",
+    "ChecksheetDialog.loadTemplate maps sub_item defensively (i.sub_item || '') — safe against pre-enhancement templates without the field.",
+    "Table 'SUB ITEM' header is uppercased via CSS text-transform; visible correctly but tests must be case-insensitive when reading textContent/inner_text.",
+    "Carried over from iteration_1/2: /app/backend/tests/test_simin_api.py still uses obsolete email-based login and should be deleted or updated. @app.on_event startup/shutdown deprecated on FastAPI current versions."
+  ],
+  "updated_files": ["/app/backend/tests/test_checksheet.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin: admin / Admin#2026 ; User: operator / Operator#2026",
+  "seed_data_creation": "Ephemeral TEST_SubItem_* template created and deleted via UI. Existing GOLIVE schedule received test sub_item values 'Kompresor A - Line 1' and 'Head 1' plus TEST_Op_SubItem operator/technician (persisted on that seeded schedule — harmless demo). Backend pytest creates & deletes its own TEST_ machine+schedule.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Schedules row Checksheet button uses data-testid='checksheet-schedule-<id>' (NOT 'checksheet-button-<id>'). SignaturePad testId is applied directly to the <canvas> element (selector: canvas[data-testid=\"checksheet-operator-signature\"]). Table header text is uppercased via CSS text-transform, so use case-insensitive comparisons when asserting 'Sub Item' vs DOM inner_text ('SUB ITEM'). Backend run: `REACT_APP_BACKEND_URL=<url> pytest /app/backend/tests/test_checksheet.py -o addopts='' -v` — 10/10 pass in ~3s.",
+  "rca of the issue": "N/A — no defects found. Sub Item enhancement is correctly implemented across backend models, ChecksheetDialog, TemplateManager, and BAP PDF (client-side jsPDF)."
+}
