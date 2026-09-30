@@ -7,8 +7,13 @@ import { formatRupiah, formatDate, HIDDEN } from "@/lib/format";
 import { generateReportPDF } from "@/lib/pdf";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { FileDown } from "lucide-react";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { FileDown, Upload, Trash2, FileText, Loader2 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
@@ -17,10 +22,76 @@ import { toast } from "sonner";
 export default function Reports() {
   const { isAdmin } = useAuth();
   const [data, setData] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [title, setTitle] = useState("");
+  const [delFile, setDelFile] = useState(null);
+  const fileInputRef = React.useRef(null);
 
   useEffect(() => {
     api.get("/reports/summary").then((r) => setData(r.data)).catch(() => {});
+    loadFiles();
   }, []);
+
+  const loadFiles = () => api.get("/files").then((r) => setFiles(r.data)).catch(() => {});
+
+  const formatSize = (b) => {
+    if (b < 1024) return `${b} B`;
+    if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+    return `${(b / 1024 / 1024).toFixed(2)} MB`;
+  };
+
+  const onPickFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ukuran berkas melebihi 2 MB");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("title", title);
+    setUploading(true);
+    try {
+      await api.post("/files", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      toast.success("Berkas diunggah");
+      setTitle("");
+      loadFiles();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Gagal mengunggah berkas");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const downloadFile = async (f) => {
+    try {
+      const res = await api.get(`/files/${f.id}/download`, { responseType: "blob" });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = f.original_filename || "berkas";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error("Gagal mengunduh berkas");
+    }
+  };
+
+  const doDeleteFile = async () => {
+    try {
+      await api.delete(`/files/${delFile.id}`);
+      toast.success("Berkas dihapus");
+      setDelFile(null);
+      loadFiles();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Gagal menghapus berkas");
+    }
+  };
 
   if (!data) return <div className="text-slate-500">Memuat laporan...</div>;
 
@@ -103,6 +174,87 @@ export default function Reports() {
         </div>
       </Card>
       {!isAdmin && <p className="text-xs text-slate-400 mt-3">* Informasi biaya hanya untuk Administrator ({HIDDEN}).</p>}
+
+      <Card className="overflow-hidden mt-6" data-testid="document-library">
+        <div className="p-4 border-b flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="font-heading text-lg font-bold uppercase tracking-tight">Perpustakaan Dokumen</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Unggah & simpan berkas pendukung (maks. 2 MB per berkas).</p>
+          </div>
+          {isAdmin && (
+            <div className="flex items-end gap-2">
+              <div>
+                <label className="text-[11px] uppercase tracking-wider text-slate-500">Judul/Keterangan (opsional)</label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="mis. Manual Mesin CNC" className="h-10 w-56" data-testid="file-title-input" />
+              </div>
+              <input ref={fileInputRef} type="file" className="hidden" onChange={onPickFile} data-testid="file-input" />
+              <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} data-testid="upload-file-button" className="bg-sky-600 hover:bg-sky-500 h-10">
+                {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {uploading ? "Mengunggah..." : "Unggah Berkas"}
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <Table data-testid="files-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nama Berkas</TableHead>
+                <TableHead>Jenis</TableHead>
+                <TableHead>Ukuran</TableHead>
+                <TableHead>Tanggal Unggah</TableHead>
+                <TableHead>Pengunggah</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {files.length === 0 && (
+                <TableRow><TableCell colSpan={6} className="text-center text-slate-400 py-10">Belum ada berkas. {isAdmin ? "Unggah berkas pertama Anda." : ""}</TableCell></TableRow>
+              )}
+              {files.map((f) => (
+                <TableRow key={f.id} data-testid={`file-row-${f.id}`}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div>
+                        <div className="font-semibold">{f.title || f.original_filename}</div>
+                        {f.title && f.title !== f.original_filename && <div className="text-xs text-slate-400">{f.original_filename}</div>}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="uppercase text-xs text-slate-500">{(f.original_filename?.split(".").pop() || "-")}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatSize(f.size)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatDate(f.created_at)}</TableCell>
+                  <TableCell>{f.uploaded_by || "-"}</TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button variant="outline" size="sm" className="mr-1" onClick={() => downloadFile(f)} data-testid={`download-file-${f.id}`}>
+                      <FileDown className="w-4 h-4 mr-1" /> Unduh
+                    </Button>
+                    {isAdmin && (
+                      <Button variant="ghost" size="icon" onClick={() => setDelFile(f)} data-testid={`delete-file-${f.id}`}>
+                        <Trash2 className="w-4 h-4 text-rose-600" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      <AlertDialog open={!!delFile} onOpenChange={(v) => !v && setDelFile(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus berkas ini?</AlertDialogTitle>
+            <AlertDialogDescription>"{delFile?.title || delFile?.original_filename}" akan dihapus dari perpustakaan. Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={doDeleteFile} className="bg-rose-600 hover:bg-rose-500" data-testid="confirm-delete-file">Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
