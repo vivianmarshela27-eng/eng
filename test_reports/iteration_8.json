@@ -1,0 +1,24 @@
+{
+  "summary": "Tested the 3 Riwayat Preventif enhancements: (1) form-level Catatan note textarea (admin) / read-only view (user) - saved via PUT /schedules/{id}/checksheet and included in per-form BAP PDF, (2) admin-only DELETE /schedules/{id}/checksheet that removes only the checksheet subdoc and makes the schedule pending again, (3) Cetak Rekap button visible to admin+user that generates a summary PDF. Backend: 6/6 pytest tests pass (note persistence, empty-note default, admin delete keeps schedule/machine_name, user forbidden DELETE 403, user forbidden PUT 403, delete 404 on unknown id). Frontend: full admin flow (see textarea, save+persist note, per-row BAP download, Cetak Rekap download, Hapus with confirm dialog, deleted schedule reappears in pick-schedule-select) and user flow (Cetak Rekap visible, no Isi Checksheet Baru, no Hapus button, note-view read-only, downloads work) all pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_checksheet_enhancements.py",
+    "/app/test_reports/pytest/checksheet_enh_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py continues to grow (~928 lines) - still exceeds the 700 line guideline; consider splitting checksheet/schedules/files into separate routers.",
+    "ChecksheetDialog buildData() reads note from state - fine, but printPDF() from within the dialog is called with buildData() (in-memory) which is correct; per-row Cetak BAP on the history page uses the persisted schedule object - both paths work.",
+    "DialogContent missing aria-describedby warnings (a11y) surfaced during testing - minor accessibility polish, not functional."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_checksheet_enhancements.py (new)"
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin/Admin#2026, operator/Operator#2026",
+  "seed_data_creation": "Created two TEST_ schedules via API (TEST Preventif A/B on machine GOLIVE) to have pending schedules available in the picker; the existing GOLIVE schedule has 1 filled checksheet (contains user-visible note 'Catatan untuk user readonly'). No cleanup needed since these are safe TEST_-labeled entries; can be removed via /api/schedules/{id} if desired.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 3 enhancements verified end-to-end. Relevant data-testids: recap-pdf-button, new-checksheet-button, pick-schedule-select, pick-schedule-confirm, history-row-<id>, open-checksheet-<id>, pdf-checksheet-<id>, delete-checksheet-<id>, confirm-delete-checksheet, checksheet-dialog, checksheet-note (admin textarea), checksheet-note-view (user readonly), checksheet-save-button. Downloads are jsPDF client-side (expect_download works). Empty-recap toast path was not exercised (would require deleting all filled checksheets); trivial branch that only shows toast."
+}
