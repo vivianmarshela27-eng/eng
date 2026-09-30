@@ -12,6 +12,7 @@ import Spareparts from "@/pages/Spareparts";
 import Technicians from "@/pages/Technicians";
 import Repairs from "@/pages/Repairs";
 import Reports from "@/pages/Reports";
+import PreventiveHistory from "@/pages/PreventiveHistory";
 import Users from "@/pages/Users";
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
               <Route path="/spareparts" element={<Spareparts />} />
               <Route path="/technicians" element={<Technicians />} />
               <Route path="/repairs" element={<Repairs />} />
+              <Route path="/preventive-history" element={<PreventiveHistory />} />
               <Route path="/reports" element={<Reports />} />
               <Route
                 path="/users"

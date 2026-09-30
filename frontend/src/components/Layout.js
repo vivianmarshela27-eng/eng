@@ -10,6 +10,7 @@ import {
   Boxes,
   Users,
   Wrench,
+  ClipboardCheck,
   BarChart3,
   ShieldCheck,
   LogOut,
@@ -25,6 +26,7 @@ const nav = [
   { to: "/spareparts", label: "Manajemen Sparepart", icon: Boxes },
   { to: "/technicians", label: "Manajemen Teknisi", icon: Users },
   { to: "/repairs", label: "Perbaikan & Riwayat", icon: Wrench },
+  { to: "/preventive-history", label: "Riwayat Preventif", icon: ClipboardCheck },
   { to: "/reports", label: "Laporan & Analisa", icon: BarChart3 },
 ];
 
