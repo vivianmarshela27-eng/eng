@@ -8,6 +8,7 @@ import { generateChecksheetPDF } from "@/lib/pdf";
 import { formatDate } from "@/lib/format";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, ArrowUp, ArrowDown, FileDown, CheckCircle2, XCircle, CornerDownRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +31,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
   const [technicianName, setTechnicianName] = useState("");
   const [opSig, setOpSig] = useState("");
   const [techSig, setTechSig] = useState("");
+  const [note, setNote] = useState("");
   const [tplId, setTplId] = useState("");
 
   useEffect(() => {
@@ -40,6 +42,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
     setTechnicianName(cs.technician_name || schedule.technician_name || "");
     setOpSig(cs.operator_signature || "");
     setTechSig(cs.technician_signature || "");
+    setNote(cs.note || "");
     setTplId("");
   }, [open, schedule]);
 
@@ -81,7 +84,7 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
 
   const buildData = () => ({
     items, operator_name: operatorName, technician_name: technicianName,
-    operator_signature: opSig, technician_signature: techSig,
+    operator_signature: opSig, technician_signature: techSig, note,
   });
 
   const save = async () => {
@@ -218,6 +221,13 @@ export default function ChecksheetDialog({ open, onOpenChange, schedule, templat
             {isAdmin ? <Input value={technicianName} onChange={(e) => setTechnicianName(e.target.value)} data-testid="checksheet-technician-name" /> : <div className="mt-1">{technicianName || "-"}</div>}
             <div className="mt-3"><SignaturePad label="Tanda Tangan Teknisi" value={techSig} onChange={isAdmin ? setTechSig : () => {}} testId="checksheet-technician-signature" /></div>
           </div>
+        </div>
+
+        <div className="pt-2">
+          <Label className="text-xs">Catatan</Label>
+          {isAdmin
+            ? <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Catatan umum untuk keseluruhan pemeriksaan (opsional)" data-testid="checksheet-note" className="mt-1" />
+            : <div className="mt-1 whitespace-pre-wrap text-sm border rounded-md p-3 bg-slate-50 dark:bg-slate-900 min-h-[3rem]" data-testid="checksheet-note-view">{note || "-"}</div>}
         </div>
 
         <DialogFooter className="gap-2">

@@ -3,15 +3,19 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { formatDate } from "@/lib/format";
-import { generateChecksheetPDF } from "@/lib/pdf";
+import { generateChecksheetPDF, generateRecapPDF } from "@/lib/pdf";
 import ChecksheetDialog from "@/components/ChecksheetDialog";
 import TemplateManager from "@/components/TemplateManager";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { ClipboardList, ClipboardCheck, FileDown, Plus, CheckCircle2, XCircle } from "lucide-react";
+import { ClipboardList, ClipboardCheck, FileDown, FileText, Plus, Trash2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const hasChecksheet = (s) => !!(s.checksheet && Array.isArray(s.checksheet.items) && s.checksheet.items.length > 0);
@@ -24,6 +28,7 @@ export default function PreventiveHistory() {
   const [tplOpen, setTplOpen] = useState(false);
   const [pickOpen, setPickOpen] = useState(false);
   const [pickId, setPickId] = useState("");
+  const [delTarget, setDelTarget] = useState(null);
 
   const load = () => api.get("/schedules").then((r) => setSchedules(r.data)).catch(() => {});
   const loadTemplates = () => api.get("/checksheet-templates").then((r) => setTemplates(r.data)).catch(() => {});
@@ -47,19 +52,40 @@ export default function PreventiveHistory() {
     setCsTarget(sch);
   };
 
+  const doDelete = async () => {
+    try {
+      await api.delete(`/schedules/${delTarget.id}/checksheet`);
+      toast.success("Checksheet dihapus");
+      setDelTarget(null);
+      load();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Gagal menghapus checksheet");
+    }
+  };
+
+  const printRecap = () => {
+    if (history.length === 0) { toast.error("Belum ada checksheet untuk direkap"); return; }
+    generateRecapPDF(history);
+  };
+
   return (
     <div>
       <PageHeader title="Riwayat Preventif" subtitle="Checksheet pemeliharaan yang sudah diisi.">
-        {isAdmin && (
-          <div className="flex gap-2">
-            <Button onClick={() => setTplOpen(true)} variant="outline" data-testid="manage-templates-button">
-              <ClipboardList className="w-4 h-4 mr-2" /> Kelola Template
-            </Button>
-            <Button onClick={() => { setPickId(""); setPickOpen(true); }} data-testid="new-checksheet-button" className="bg-sky-600 hover:bg-sky-500">
-              <Plus className="w-4 h-4 mr-2" /> Isi Checksheet Baru
-            </Button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={printRecap} variant="outline" data-testid="recap-pdf-button">
+            <FileText className="w-4 h-4 mr-2" /> Cetak Rekap
+          </Button>
+          {isAdmin && (
+            <>
+              <Button onClick={() => setTplOpen(true)} variant="outline" data-testid="manage-templates-button">
+                <ClipboardList className="w-4 h-4 mr-2" /> Kelola Template
+              </Button>
+              <Button onClick={() => { setPickId(""); setPickOpen(true); }} data-testid="new-checksheet-button" className="bg-sky-600 hover:bg-sky-500">
+                <Plus className="w-4 h-4 mr-2" /> Isi Checksheet Baru
+              </Button>
+            </>
+          )}
+        </div>
       </PageHeader>
 
       <Card className="overflow-hidden">
@@ -101,6 +127,11 @@ export default function PreventiveHistory() {
                       <Button variant="ghost" size="sm" onClick={() => generateChecksheetPDF(s)} data-testid={`pdf-checksheet-${s.id}`}>
                         <FileDown className="w-4 h-4 mr-1" /> Cetak BAP
                       </Button>
+                      {isAdmin && (
+                        <Button variant="ghost" size="icon" onClick={() => setDelTarget(s)} data-testid={`delete-checksheet-${s.id}`}>
+                          <Trash2 className="w-4 h-4 text-rose-600" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -119,6 +150,21 @@ export default function PreventiveHistory() {
         onSaved={load}
       />
       <TemplateManager open={tplOpen} onOpenChange={setTplOpen} templates={templates} onChanged={loadTemplates} />
+
+      <AlertDialog open={!!delTarget} onOpenChange={(v) => !v && setDelTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus checksheet ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hanya data checksheet untuk "{delTarget?.machine_name}" ({delTarget?.maintenance_type}) yang dihapus. Jadwal pemeliharaannya tetap ada dan dapat diisi ulang. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={doDelete} className="bg-rose-600 hover:bg-rose-500" data-testid="confirm-delete-checksheet">Hapus</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={pickOpen} onOpenChange={setPickOpen}>
         <DialogContent className="max-w-md" data-testid="pick-schedule-dialog">

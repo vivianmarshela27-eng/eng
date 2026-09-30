@@ -13,7 +13,8 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { FileDown, Upload, Trash2, FileText, Loader2 } from "lucide-react";
+import { FileDown, Upload, Trash2, FileText, Loader2, Eye } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell,
 } from "recharts";
@@ -26,6 +27,7 @@ export default function Reports() {
   const [uploading, setUploading] = useState(false);
   const [title, setTitle] = useState("");
   const [delFile, setDelFile] = useState(null);
+  const [preview, setPreview] = useState(null);
   const fileInputRef = React.useRef(null);
 
   useEffect(() => {
@@ -34,6 +36,33 @@ export default function Reports() {
   }, []);
 
   const loadFiles = () => api.get("/files").then((r) => setFiles(r.data)).catch(() => {});
+
+  const previewKind = (f) => {
+    const ct = (f.content_type || "").toLowerCase();
+    const ext = (f.original_filename || "").split(".").pop().toLowerCase();
+    if (ct.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"].includes(ext)) return "image";
+    if (ct.includes("pdf") || ext === "pdf") return "pdf";
+    if (ct.startsWith("text/") || ["txt", "csv", "json", "md", "log", "xml"].includes(ext)) return "text";
+    return "other";
+  };
+
+  const openPreview = async (f) => {
+    const kind = previewKind(f);
+    if (kind === "other") { setPreview({ file: f, url: "", kind }); return; }
+    try {
+      const res = await api.get(`/files/${f.id}/download`, { responseType: "blob" });
+      const blob = f.content_type ? new Blob([res.data], { type: f.content_type }) : res.data;
+      const url = URL.createObjectURL(blob);
+      setPreview({ file: f, url, kind });
+    } catch (err) {
+      toast.error("Gagal memuat pratinjau");
+    }
+  };
+
+  const closePreview = () => {
+    if (preview?.url) URL.revokeObjectURL(preview.url);
+    setPreview(null);
+  };
 
   const formatSize = (b) => {
     if (b < 1024) return `${b} B`;
@@ -227,6 +256,9 @@ export default function Reports() {
                   <TableCell className="whitespace-nowrap">{formatDate(f.created_at)}</TableCell>
                   <TableCell>{f.uploaded_by || "-"}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
+                    <Button variant="outline" size="sm" className="mr-1" onClick={() => openPreview(f)} data-testid={`preview-file-${f.id}`}>
+                      <Eye className="w-4 h-4 mr-1" /> Pratinjau
+                    </Button>
                     <Button variant="outline" size="sm" className="mr-1" onClick={() => downloadFile(f)} data-testid={`download-file-${f.id}`}>
                       <FileDown className="w-4 h-4 mr-1" /> Unduh
                     </Button>
@@ -255,6 +287,34 @@ export default function Reports() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={!!preview} onOpenChange={(v) => !v && closePreview()}>
+        <DialogContent className="max-w-3xl" data-testid="preview-dialog">
+          <DialogHeader>
+            <DialogTitle className="truncate pr-6">{preview?.file?.title || preview?.file?.original_filename}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[70vh] overflow-auto bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center justify-center">
+            {preview?.kind === "image" && (
+              <img src={preview.url} alt="pratinjau" className="max-w-full max-h-[68vh] object-contain" data-testid="preview-image" />
+            )}
+            {preview?.kind === "pdf" && (
+              <iframe title="pratinjau" src={preview.url} className="w-full h-[68vh]" data-testid="preview-frame" />
+            )}
+            {preview?.kind === "text" && (
+              <iframe title="pratinjau" src={preview.url} className="w-full h-[68vh] bg-white" data-testid="preview-frame" />
+            )}
+            {preview?.kind === "other" && (
+              <div className="p-10 text-center text-slate-500" data-testid="preview-unsupported">
+                <FileText className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                <p>Pratinjau tidak tersedia untuk jenis berkas ini.</p>
+                <Button className="mt-4 bg-sky-600 hover:bg-sky-500" onClick={() => downloadFile(preview.file)}>
+                  <FileDown className="w-4 h-4 mr-2" /> Unduh Berkas
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -180,7 +180,19 @@ export async function generateChecksheetPDF(sch) {
   doc.setFontSize(9);
   doc.setFont(undefined, "bold");
   doc.text(`Ringkasan: ${okCount} OK, ${notOkCount} Tidak OK, dari ${items.length} item.`, 14, y);
-  y += 10;
+  y += 8;
+
+  if (cs.note) {
+    doc.setFont(undefined, "bold");
+    doc.text("Catatan:", 14, y);
+    y += 5;
+    doc.setFont(undefined, "normal");
+    const noteLines = doc.splitTextToSize(cs.note, w - 28);
+    doc.text(noteLines, 14, y);
+    y += noteLines.length * 5 + 4;
+  } else {
+    y += 2;
+  }
 
   if (y > h - 60) { doc.addPage(); y = 20; }
   doc.setFont(undefined, "bold");
@@ -202,6 +214,54 @@ export async function generateChecksheetPDF(sch) {
   doc.text(cs.technician_name || sch.technician_name || "( ................. )", w - 55, lineY + 5, { align: "center" });
 
   doc.save(`BAP-Checksheet-${(sch.machine_name || "mesin").replace(/\s+/g, "-")}-${formatDate(sch.due_date)}.pdf`);
+}
+
+// Rekap ringkasan seluruh checksheet terisi dalam satu dokumen.
+export async function generateRecapPDF(schedules) {
+  const doc = new jsPDF();
+  const w = doc.internal.pageSize.getWidth();
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, w, 28, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(15);
+  doc.setFont(undefined, "bold");
+  doc.text("REKAP RIWAYAT PREVENTIF", 14, 12);
+  doc.setFontSize(9);
+  doc.setFont(undefined, "normal");
+  doc.text("SATRIA ENGINEERING - Sistem Informasi Pemeliharaan Mesin", 14, 20);
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(9);
+  doc.text(`Total checksheet terisi: ${schedules.length}`, 14, 36);
+
+  const RES = { ok: "OK", not_ok: "Tidak OK" };
+  autoTable(doc, {
+    startY: 40,
+    head: [["No", "Mesin", "Jenis", "Jatuh Tempo", "Disimpan", "OK", "Tidak OK", "Operator", "Teknisi", "Catatan"]],
+    body: schedules.map((s, i) => {
+      const cs = s.checksheet || {};
+      const items = cs.items || [];
+      const ok = items.filter((x) => x.result === "ok").length;
+      const notOk = items.filter((x) => x.result === "not_ok").length;
+      return [
+        String(i + 1), s.machine_name || "-", s.maintenance_type || "-",
+        formatDate(s.due_date), cs.updated_at ? formatDate(cs.updated_at) : "-",
+        String(ok), String(notOk), cs.operator_name || "-",
+        cs.technician_name || s.technician_name || "-", cs.note || "-",
+      ];
+    }),
+    theme: "grid",
+    headStyles: { fillColor: [2, 132, 199] },
+    styles: { fontSize: 8, cellPadding: 1.5, valign: "top" },
+    columnStyles: { 0: { cellWidth: 8 }, 5: { cellWidth: 10 }, 6: { cellWidth: 14 }, 9: { cellWidth: 34 } },
+    didParseCell: (d) => {
+      if (d.section === "body" && d.column.index === 6 && d.cell.raw !== "0") d.cell.styles.textColor = [225, 29, 72];
+      if (d.section === "body" && d.column.index === 5 && d.cell.raw !== "0") d.cell.styles.textColor = [5, 150, 105];
+    },
+  });
+
+  doc.save(`Rekap-Riwayat-Preventif-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 export function generateReportPDF(services, { isAdmin }) {

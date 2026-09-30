@@ -488,6 +488,7 @@ class ChecksheetData(BaseModel):
     technician_name: Optional[str] = ""
     operator_signature: Optional[str] = ""
     technician_signature: Optional[str] = ""
+    note: Optional[str] = ""
 
 
 @api.put("/schedules/{item_id}/checksheet")
@@ -499,6 +500,14 @@ async def save_checksheet(item_id: str, payload: ChecksheetData, user: dict = De
     if not res:
         raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
     return res
+
+
+@api.delete("/schedules/{item_id}/checksheet")
+async def delete_checksheet(item_id: str, user: dict = Depends(require_admin)):
+    res = await db.schedules.update_one({"id": item_id}, {"$unset": {"checksheet": ""}})
+    if res.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
+    return {"message": "Checksheet dihapus"}
 
 
 # ------------------------------------------------------------------ Services / Repairs

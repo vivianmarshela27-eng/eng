@@ -1,67 +1,60 @@
-# Upload File (Perpustakaan Dokumen) di Menu Laporan & Analisa
+# Catatan Umum, Hapus Riwayat, & Cetak Rekap pada Riwayat Preventif
 
-Menambahkan bagian unggah berkas pada halaman "Laporan & Analisa" sebagai perpustakaan dokumen umum.
-Admin dapat mengunggah dan menghapus berkas apa pun; User hanya dapat melihat dan mengunduh.
+Tiga penyempurnaan pada fitur checksheet/Riwayat Preventif: menambah satu kolom catatan umum pada form,
+menambah tombol hapus checksheet, dan menambah cetak rekap seluruh riwayat preventif dalam satu dokumen.
 
 ## Untuk Siapa
-- **Admin**: mengunggah berkas baru dan menghapus berkas yang ada.
-- **User (Viewer)**: melihat daftar berkas dan mengunduhnya (tanpa unggah/hapus).
+- **Admin**: mengisi catatan, menghapus checksheet yang sudah ada, dan mencetak rekap.
+- **User (Viewer)**: melihat catatan (read-only) dan dapat mencetak rekap; tidak dapat menghapus.
 
 ## Fitur & Pengalaman
 
-### Lokasi
-- Bagian baru **"Perpustakaan Dokumen"** ditambahkan di halaman **Laporan & Analisa**, di bawah grafik dan tombol ekspor PDF yang sudah ada.
+### 1. Kolom Catatan Umum pada Form Checksheet
+- Ditambahkan satu kolom **"Catatan"** (teks bebas, boleh dikosongkan) pada form checksheet.
+- Letak: di bawah area nama & tanda tangan Operator dan Teknisi (satu catatan untuk keseluruhan form, bukan per orang).
+- Admin dapat mengisi/mengubah; User melihat sebagai teks read-only.
+- Isi catatan ikut tampil pada BAP PDF per-form yang sudah ada.
 
-### Daftar Berkas
-- Menampilkan tabel/kartu berisi berkas yang sudah diunggah: nama berkas asli, jenis/format, ukuran, tanggal unggah, dan siapa yang mengunggah.
-- Setiap baris memiliki aksi **Unduh** (semua peran) dan **Hapus** (khusus Admin).
-- Bila belum ada berkas, tampil pesan kosong yang ramah.
+### 2. Hapus Checksheet (khusus Admin)
+- Pada tiap baris di halaman **Riwayat Preventif** ditambahkan aksi **"Hapus"** (hanya Admin).
+- Menghapus **hanya data checksheet** milik jadwal tersebut, setelah konfirmasi.
+- **Jadwal pemeliharaannya tetap ada** (tidak ikut terhapus) — hanya baris ini yang hilang dari daftar Riwayat Preventif. Jadwal tersebut kembali dianggap "belum diisi" sehingga bisa diisi ulang lewat "Isi Checksheet Baru".
+- User tidak melihat tombol Hapus.
 
-### Unggah (khusus Admin)
-- Tombol **"Unggah Berkas"** membuka pemilih berkas.
-- **Semua jenis berkas** diperbolehkan.
-- **Ukuran maksimum 2 MB per berkas**. Berkas melebihi batas ditolak dengan pesan jelas ("Ukuran berkas melebihi 2 MB").
-- Opsional: kolom **judul/keterangan singkat** untuk memudahkan pengenalan berkas (boleh dikosongkan; jika kosong memakai nama berkas).
-- Satu berkas per unggahan; dapat mengunggah lagi untuk menambah berkas berikutnya.
-
-### Unduh
-- Mengklik Unduh mengambil berkas melalui backend (akses terkontrol sesuai login) lalu menyimpannya di perangkat dengan nama aslinya.
-
-### Hapus (khusus Admin)
-- Menghapus berkas dari daftar setelah konfirmasi. Berkas tidak lagi muncul di perpustakaan.
+### 3. Cetak Rekap Seluruh Riwayat Preventif
+- Tombol **"Cetak Rekap"** di halaman Riwayat Preventif (terlihat Admin & User) menghasilkan **satu dokumen PDF** berisi seluruh checksheet yang sudah terisi.
+- Isi rekap per checksheet: nama mesin, jenis pemeliharaan, tanggal jatuh tempo, tanggal terakhir disimpan, ringkasan hasil (jumlah OK / Tidak OK), catatan, dan nama operator/teknisi. Antar checksheet dipisah jelas.
+- Ini pelengkap dari tombol **Cetak BAP** per-form yang sudah ada (BAP per-form tetap memuat tabel item lengkap + tanda tangan; rekap berfokus pada ringkasan banyak checksheet dalam satu berkas).
 
 ## User Flow
-1. **Admin mengunggah**: buka Laporan & Analisa → bagian Perpustakaan Dokumen → "Unggah Berkas" → pilih berkas (≤ 2 MB) → berkas muncul di daftar.
-2. **Admin/User mengunduh**: buka bagian yang sama → klik "Unduh" pada berkas yang diinginkan.
-3. **Admin menghapus**: klik "Hapus" pada baris berkas → konfirmasi → berkas hilang dari daftar.
+1. **Isi catatan**: Admin buka Riwayat Preventif → buka/isi sebuah checksheet → isi kolom Catatan di bawah tanda tangan → Simpan. Catatan tampil pada tampilan checksheet dan BAP-nya.
+2. **Hapus checksheet**: Admin klik "Hapus" pada baris riwayat → konfirmasi → baris hilang dari daftar, jadwal tetap ada.
+3. **Cetak rekap**: Admin/User klik "Cetak Rekap" → unduh satu PDF berisi semua checksheet terisi.
 
 ## UI/UX Feel
-- Konsisten dengan gaya aplikasi saat ini (industrial, Bahasa Indonesia): kartu/tabel yang sama, tombol aksi berwarna, ikon berkas.
-- Menonjolkan info penting per baris (nama, ukuran, tanggal) agar cepat terbaca.
-- Kontrol unggah/hapus hanya terlihat oleh Admin; User melihat tampilan bersih hanya-baca.
+- Konsisten dengan gaya aplikasi saat ini (industrial, Bahasa Indonesia): kartu/tabel yang sama, tombol aksi berwarna, penanda hasil OK hijau / Tidak OK merah.
+- Kolom Catatan berupa area teks multi-baris yang jelas di bawah blok tanda tangan.
+- Konfirmasi hapus memakai dialog yang sama seperti penghapusan lain di aplikasi.
+- Tombol "Cetak Rekap" diletakkan di header halaman, terpisah dari aksi per-baris agar tidak membingungkan.
 
 ## Implementation Phases
 
 ### Fase 1 (MVP — dibangun sekarang)
-- Bagian "Perpustakaan Dokumen" di halaman Laporan & Analisa.
-- Admin: unggah (semua jenis, maks 2 MB) dan hapus berkas.
-- User: melihat daftar dan mengunduh.
-- Daftar berkas menampilkan nama, jenis, ukuran, tanggal unggah, pengunggah.
+- Kolom Catatan umum pada form checksheet (isi Admin, read-only User), ikut pada BAP per-form.
+- Tombol Hapus checksheet per baris (khusus Admin) yang hanya menghapus data checksheet, jadwal tetap ada.
+- Tombol Cetak Rekap yang menghasilkan satu PDF ringkasan seluruh checksheet terisi.
 
 ### Fase 2 (berikutnya)
-- Pencarian/filter berkas (berdasarkan nama/keterangan, jenis, atau tanggal).
-- Pengaitan opsional berkas ke mesin atau catatan servis tertentu.
+- Filter isi rekap sebelum cetak (rentang tanggal, per mesin, hanya yang punya item "Tidak OK").
+- Sertakan tabel item lengkap (bukan hanya ringkasan) sebagai opsi pada rekap.
 
 ### Fase 3 (lanjutan)
-- Kategori/folder dokumen dan penataan berdasarkan label.
-- Pratinjau (preview) langsung untuk PDF dan gambar tanpa harus mengunduh.
+- Riwayat berversi: menyimpan lebih dari satu pelaksanaan checksheet per jadwal, sehingga hapus/rekap dapat memilih versi/periode tertentu.
 
 ## Assumptions
-- Penyimpanan berkas menggunakan layanan object storage bawaan platform (dikelola otomatis, tidak memerlukan kredensial tambahan dari pengguna).
-- "Perpustakaan dokumen umum": berkas tidak dikaitkan ke mesin/servis tertentu pada Fase 1.
-- Batas 2 MB berlaku per berkas; validasi dilakukan sebelum dan saat unggah.
-- Semua jenis berkas diterima; tidak ada penyaringan format pada Fase 1.
-- Unduh dilayani melalui backend (bukan tautan penyimpanan langsung), tetap menghormati status login.
-- Penghapusan menyembunyikan berkas dari daftar (tidak dapat dibatalkan dari sisi pengguna); riwayat versi berkas tidak termasuk pada Fase 1.
-- Menu lain (mesin, jadwal, sparepart, teknisi, perbaikan, riwayat preventif, laporan) tidak berubah selain penambahan bagian ini.
-- Bahasa antarmuka tetap Bahasa Indonesia.
+- "Catatan" adalah satu kolom teks bebas untuk keseluruhan form (bukan catatan terpisah per operator/teknisi), diletakkan di bawah blok tanda tangan.
+- Catatan yang sudah ada per-item (kolom Catatan pada tiap baris item) tetap dipertahankan; kolom baru ini adalah catatan tingkat form yang berbeda.
+- "Hapus" mengosongkan data checksheet dari jadwal terkait dan bersifat tidak dapat dibatalkan dari sisi pengguna; jadwal pemeliharaan tidak terpengaruh.
+- "Cetak Rekap" mencakup seluruh checksheet yang sudah terisi tanpa filter pada Fase 1, berisi ringkasan (bukan tabel item lengkap tiap checksheet) agar dokumen ringkas; tombolnya tersedia untuk Admin dan User.
+- Tombol Cetak BAP per-form yang sudah ada tetap dipertahankan sebagaimana adanya.
+- Bahasa antarmuka tetap Bahasa Indonesia; tidak ada perubahan pada menu lain.
