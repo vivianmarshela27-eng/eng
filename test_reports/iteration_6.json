@@ -1,0 +1,25 @@
+{
+  "summary": "Verified 'Riwayat Preventif' feature end-to-end. Backend: reran pytest /app/backend/tests/test_checksheet.py -> 10/10 pass (checksheet APIs & RBAC unchanged). Frontend Playwright: (1) Sidebar has 'Riwayat Preventif' after 'Perbaikan & Riwayat' for both admin+user (route /preventive-history). (2) Admin sees 'Kelola Template' and 'Isi Checksheet Baru'. History table shows 1 row (GOLIVE, seeded) with 'X OK / Y Tidak OK' summary, last saved date. (3) Admin 'Buka' opens ChecksheetDialog containing 'Simpan Checksheet' + 'Tambah Item' controls; 'Cetak BAP' triggers PDF download (BAP-Checksheet-GOLIVE--.pdf) without JS errors. (4) 'Kelola Template' opens TemplateManager dialog. (5) 'Isi Checksheet Baru' opens pick-schedule-dialog; after creating a schedule with no checksheet, the picker lists 1 option and confirming opens the ChecksheetDialog for that schedule. (6) /schedules page for admin: 0 'checksheet-schedule-*' actions, no 'manage-templates-button' — cleanup complete; add/edit/delete row buttons still present. (7) Operator user: does NOT see manage-templates-button nor new-checksheet-button; button label reads 'Lihat'; dialog is read-only (no Simpan/Tambah Item/Tambah Sub); 'Cetak BAP' download works.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": [
+    {"screen": "Riwayat Preventif row for seeded GOLIVE", "issues": ["Seeded GOLIVE checksheet has no due_date and all items lack result -> summary shows '0 OK · 0 Tidak OK' and Jatuh Tempo shows '-'. Cosmetic/data-only, not a code bug."]}
+  ]},
+  "test_report_links": ["/app/backend/tests/test_checksheet.py", "/app/test_reports/pytest/checksheet_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PreventiveHistory.js hasChecksheet filter is guarded on Array.isArray(items) && items.length>0 — correct definition of 'terisi'.",
+    "isAdmin gates both 'Kelola Template' and 'Isi Checksheet Baru' as well as the 'Buka' vs 'Lihat' label; ChecksheetDialog receives isAdmin to enforce read-only mode.",
+    "Schedules.js no longer imports ChecksheetDialog/TemplateManager and no per-row Checksheet button — dead code fully removed.",
+    "pick-schedule-dialog uses shadcn Select; when pending list is empty, shows fallback message 'Semua jadwal sudah memiliki checksheet.' — good UX.",
+    "generateChecksheetPDF is client-side jsPDF; download tested for both admin and user without JS errors.",
+    "Layout.js: 'Riwayat Preventif' entry placed at correct index (after 'Perbaikan & Riwayat') and rendered for both roles."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin: admin / Admin#2026 ; User: operator / Operator#2026",
+  "seed_data_creation": "TEST_UI_PICK schedule created via UI and deleted after test. Ensured at least 1 filled-checksheet row exists (seeded via API on GOLIVE machine schedule) before UI test — no lingering test data.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Login testids: login-username-input, login-password-input, login-submit-button. PreventiveHistory testids: manage-templates-button, new-checksheet-button, history-table, history-row-<id>, open-checksheet-<id>, pdf-checksheet-<id>, pick-schedule-dialog, pick-schedule-select, pick-schedule-confirm. Sidebar nav testid pattern: nav-<slug> e.g. nav-preventive-history, nav-schedules. Seeded GOLIVE checksheet has items with empty result and null due_date, so its summary is 0 OK / 0 Tidak OK — expect >=1 row but summary numbers may be zero. Backend run: `REACT_APP_BACKEND_URL=<url> pytest /app/backend/tests/test_checksheet.py -o addopts='' -v` -> 10/10 in ~3s.",
+  "rca of the issue": "N/A — feature works. Sidebar 'Riwayat Preventif' is the sole entry point for checksheet fill/view/print; role gating matches spec (admin edit, user read-only); Schedules page correctly de-scoped."
+}
