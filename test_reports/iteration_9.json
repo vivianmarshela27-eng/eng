@@ -1,0 +1,23 @@
+{
+  "summary": "Validated the calendar/toggle + schedule color feature on /schedules and the Riwayat Preventif additions on /reports. Backend: 10/10 pytest tests pass (POST/PUT /api/schedules persist color, default color #0284C7 when omitted, update changes color, user 403 on POST/PUT/DELETE, GET /api/reports/summary returns preventive{total_checksheets,total_schedules,with_issues,total_items,total_ok,total_not_ok} and preventive_history entries carrying ok/not_ok/operator_name/technician_name/note, user still has cost stripped). Frontend admin: default view=calendar, Kalender/Tabel toggle works and persists in sessionStorage ('table'/'calendar'), prev/next/today navigation updates calendar-month-label correctly, clicking empty day opens Tambah Jadwal with due_date prefilled, color picker swatches select (color-E11D48 persisted bg rgb(225,29,72)), new event appears on correct day with chosen color, edit via detail-edit-button updates color (color-059669 -> rgb(5,150,105)), delete via detail-delete-button + alert confirm removes event from calendar. Reports: preventive-chart-card + preventive-summary-card visible, stat-total-checksheets shows '1 dari 1 jadwal', Ekspor PDF triggers a jsPDF download (Laporan-Servis-*.pdf) without errors. Frontend operator: no Tambah Jadwal button, clicking empty day does NOT open form, event detail dialog is view-only (no edit/delete, Tutup present), preventive chart+summary visible on /reports.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_schedule_calendar_reports.py",
+    "/app/test_reports/pytest/schedule_cal_reports.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py now ~970 lines - continues to exceed 700-line guideline; split schedules/reports/files into separate routers.",
+    "ScheduleIn.color has no validation (accepts any string). Consider a Pydantic validator to enforce #RRGGBB format.",
+    "ScheduleCalendar.isOverdue() parses s.due_date with new Date() which treats 'YYYY-MM-DD' as UTC; local-TZ users near UTC boundary could see off-by-one overdue markers. Low-impact in Indonesia (UTC+7) but worth normalizing with the ymd() helper already in the file.",
+    "The '+N lainnya' popup uses a custom fixed overlay (not shadcn Dialog) - a11y not ideal; works functionally."
+  ],
+  "updated_files": ["/app/backend/tests/test_schedule_calendar_reports.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin/Admin#2026, operator/Operator#2026",
+  "seed_data_creation": "Created and then deleted one TEST_CAL_Preventif schedule via the UI; backend test creates two schedules with cleanup DELETE at end. No residual test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Calendar testids: schedule-view-toggle, view-calendar, view-table, schedule-calendar, calendar-prev-month, calendar-next-month, calendar-today-button, calendar-month-label, calendar-day-YYYY-MM-DD, calendar-event-<id>, calendar-more-<key>, calendar-day-popup, schedule-detail-dialog, detail-edit-button, detail-delete-button. Form color picker: schedule-color-picker with swatches color-<HEX_WITHOUT_HASH>. Report cards: preventive-chart-card, preventive-summary-card, stat-total-checksheets, export-pdf-button. sessionStorage key 'schedule_view' persists view. jsPDF export is client-side and emits a real download (expect_download works). After login, user is redirected to /dashboard (not /)."
+}
