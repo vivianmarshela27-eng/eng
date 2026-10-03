@@ -518,6 +518,12 @@ class UsedPart(BaseModel):
     qty: int
 
 
+class ServicePhoto(BaseModel):
+    file_id: str
+    filename: Optional[str] = ""
+    content_type: Optional[str] = ""
+
+
 class ServiceIn(BaseModel):
     machine_id: str
     machine_name: Optional[str] = ""
@@ -533,6 +539,7 @@ class ServiceIn(BaseModel):
     status: str = "selesai"  # dalam_proses | selesai
     operator_signature: Optional[str] = ""
     technician_signature: Optional[str] = ""
+    photos: List[ServicePhoto] = []
 
 
 def strip_cost(item: dict, user: dict) -> dict:

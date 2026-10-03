@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import api, { formatApiErrorDetail } from "@/lib/api";
+import api, { formatApiErrorDetail, API } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
@@ -18,14 +18,16 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FileDown, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileDown, CheckCircle2, ImagePlus, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const photoUrl = (p) => `${API}/files/${p.file_id}/download`;
 
 const empty = {
   machine_id: "", machine_name: "", date: new Date().toISOString().slice(0, 10),
   service_type: "preventif", problem: "", action: "", technician_id: "", technician_name: "",
   operator_name: "", used_parts: [], cost: 0, status: "selesai",
-  operator_signature: "", technician_signature: "",
+  operator_signature: "", technician_signature: "", photos: [],
 };
 
 export default function Repairs() {
@@ -40,6 +42,10 @@ export default function Repairs() {
   const [delId, setDelId] = useState(null);
   const [partSel, setPartSel] = useState("");
   const [partQty, setPartQty] = useState(1);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [gallery, setGallery] = useState(null);
+  const [lightbox, setLightbox] = useState(null);
+  const photoInputRef = React.useRef(null);
 
   const load = () => api.get("/services").then((r) => setItems(r.data)).catch(() => {});
   useEffect(() => {
@@ -50,7 +56,29 @@ export default function Repairs() {
   }, []);
 
   const openNew = () => { setForm(empty); setEditId(null); setOpen(true); };
-  const openEdit = (m) => { setForm({ ...empty, ...m, used_parts: m.used_parts || [] }); setEditId(m.id); setOpen(true); };
+  const openEdit = (m) => { setForm({ ...empty, ...m, used_parts: m.used_parts || [], photos: m.photos || [] }); setEditId(m.id); setOpen(true); };
+
+  const onPickPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { toast.error("Hanya berkas gambar yang diperbolehkan"); if (photoInputRef.current) photoInputRef.current.value = ""; return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error("Ukuran foto melebihi 2 MB"); if (photoInputRef.current) photoInputRef.current.value = ""; return; }
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("title", file.name);
+    setUploadingPhoto(true);
+    try {
+      const { data } = await api.post("/files", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      setForm((f) => ({ ...f, photos: [...(f.photos || []), { file_id: data.id, filename: data.original_filename, content_type: data.content_type }] }));
+      toast.success("Foto ditambahkan");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Gagal mengunggah foto");
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = "";
+    }
+  };
+  const removePhoto = (idx) => setForm((f) => ({ ...f, photos: f.photos.filter((_, i) => i !== idx) }));
 
   const addPart = () => {
     const p = parts.find((x) => x.id === partSel);
@@ -101,6 +129,7 @@ export default function Repairs() {
                 <TableHead>Jenis</TableHead>
                 <TableHead>Teknisi</TableHead>
                 <TableHead>Bukti TTD</TableHead>
+                <TableHead>Foto</TableHead>
                 {isAdmin && <TableHead>Biaya</TableHead>}
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
@@ -108,7 +137,7 @@ export default function Repairs() {
             </TableHeader>
             <TableBody>
               {items.length === 0 && (
-                <TableRow><TableCell colSpan={isAdmin ? 8 : 7} className="text-center text-slate-400 py-8">Belum ada catatan servis.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center text-slate-400 py-8">Belum ada catatan servis.</TableCell></TableRow>
               )}
               {items.map((s) => (
                 <TableRow key={s.id} data-testid={`service-row-${s.id}`}>
@@ -126,6 +155,15 @@ export default function Repairs() {
                     )}
                   </TableCell>
                   {isAdmin && <TableCell className="font-mono">{formatRupiah(s.cost)}</TableCell>}
+                  <TableCell>
+                    {(s.photos || []).length > 0 ? (
+                      <button onClick={() => setGallery(s)} className="inline-flex items-center gap-1 text-sky-600 text-xs font-semibold hover:underline" data-testid={`photos-service-${s.id}`}>
+                        <ImageIcon className="w-4 h-4" /> {s.photos.length} foto
+                      </button>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+                  </TableCell>
                   <TableCell><StatusBadge status={s.status} /></TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="icon" onClick={() => generateServicePDF(s, { isAdmin })} data-testid={`pdf-service-${s.id}`} title="Unduh BAP PDF">
@@ -212,6 +250,40 @@ export default function Repairs() {
               </div>
             </div>
 
+            {/* Photos */}
+            <div className="col-span-2 border-t pt-4">
+              <Label className="mb-2 block">Foto (Dokumentasi)</Label>
+              {isAdmin && (
+                <>
+                  <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={onPickPhoto} data-testid="service-photo-input" />
+                  <Button type="button" variant="outline" onClick={() => photoInputRef.current?.click()} disabled={uploadingPhoto} data-testid="add-photo-button">
+                    {uploadingPhoto ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ImagePlus className="w-4 h-4 mr-2" />}
+                    {uploadingPhoto ? "Mengunggah..." : "Tambah Foto"}
+                  </Button>
+                  <p className="text-[11px] text-slate-400 mt-1">Hanya gambar, maks. 2 MB per foto.</p>
+                </>
+              )}
+              <div className="flex flex-wrap gap-3 mt-3">
+                {(form.photos || []).length === 0 && <span className="text-xs text-slate-400">Belum ada foto.</span>}
+                {(form.photos || []).map((p, i) => (
+                  <div key={p.file_id} className="relative group">
+                    <img
+                      src={photoUrl(p)}
+                      alt={p.filename}
+                      className="w-20 h-20 object-cover rounded-lg border cursor-pointer"
+                      onClick={() => setLightbox(photoUrl(p))}
+                      data-testid={`form-photo-${i}`}
+                    />
+                    {isAdmin && (
+                      <button type="button" onClick={() => removePhoto(i)} className="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full p-0.5 shadow" data-testid={`remove-photo-${i}`}>
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Signatures */}
             <div className="col-span-2 border-t pt-4">
               <Label className="mb-2 block">Tanda Tangan Bukti Selesai</Label>
@@ -227,6 +299,31 @@ export default function Repairs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!gallery} onOpenChange={(v) => !v && setGallery(null)}>
+        <DialogContent className="max-w-2xl" data-testid="photo-gallery-dialog">
+          <DialogHeader><DialogTitle>Foto Servis — {gallery?.machine_name}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[70vh] overflow-y-auto">
+            {(gallery?.photos || []).map((p, i) => (
+              <img
+                key={p.file_id}
+                src={photoUrl(p)}
+                alt={p.filename}
+                className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90"
+                onClick={() => setLightbox(photoUrl(p))}
+                data-testid={`gallery-photo-${i}`}
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {lightbox && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4" onClick={() => setLightbox(null)} data-testid="photo-lightbox">
+          <img src={lightbox} alt="pratinjau" className="max-w-full max-h-[90vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+          <button className="absolute top-4 right-4 bg-white/90 rounded-full p-1.5" onClick={() => setLightbox(null)}><X className="w-5 h-5" /></button>
+        </div>
+      )}
 
       <AlertDialog open={!!delId} onOpenChange={(v) => !v && setDelId(null)}>
         <AlertDialogContent>
