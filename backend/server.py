@@ -393,6 +393,7 @@ class ScheduleIn(BaseModel):
     technician_name: Optional[str] = ""
     status: str = "terjadwal"  # terjadwal | jatuh_tempo | selesai
     notes: Optional[str] = ""
+    color: Optional[str] = "#0284C7"
 
 
 @api.get("/schedules")
@@ -744,7 +745,48 @@ async def reports_summary(user: dict = Depends(get_current_user)):
     by_type = {"preventif": 0, "perbaikan": 0}
     for sv in services:
         by_type[sv.get("service_type", "preventif")] = by_type.get(sv.get("service_type", "preventif"), 0) + 1
-    result = {"by_type": by_type, "services": [strip_cost(s, user) for s in services]}
+
+    # Preventive checksheet statistics (Riwayat Preventif)
+    schedules = await db.schedules.find({}, {"_id": 0}).to_list(2000)
+    filled = [s for s in schedules if isinstance(s.get("checksheet"), dict) and (s["checksheet"].get("items") or [])]
+    total_ok = 0
+    total_not_ok = 0
+    total_items = 0
+    with_issues = 0
+    preventive_history = []
+    for s in filled:
+        cs = s["checksheet"]
+        items = cs.get("items", [])
+        ok = sum(1 for i in items if i.get("result") == "ok")
+        not_ok = sum(1 for i in items if i.get("result") == "not_ok")
+        total_ok += ok
+        total_not_ok += not_ok
+        total_items += len(items)
+        if not_ok > 0:
+            with_issues += 1
+        preventive_history.append({
+            "id": s.get("id"), "machine_name": s.get("machine_name", ""),
+            "maintenance_type": s.get("maintenance_type", ""), "due_date": s.get("due_date", ""),
+            "updated_at": cs.get("updated_at", ""), "ok": ok, "not_ok": not_ok,
+            "total": len(items), "note": cs.get("note", ""),
+            "operator_name": cs.get("operator_name", ""),
+            "technician_name": cs.get("technician_name", s.get("technician_name", "")),
+        })
+    preventive_history.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
+
+    result = {
+        "by_type": by_type,
+        "services": [strip_cost(s, user) for s in services],
+        "preventive": {
+            "total_checksheets": len(filled),
+            "total_schedules": len(schedules),
+            "with_issues": with_issues,
+            "total_items": total_items,
+            "total_ok": total_ok,
+            "total_not_ok": total_not_ok,
+        },
+        "preventive_history": preventive_history,
+    }
     return result
 
 

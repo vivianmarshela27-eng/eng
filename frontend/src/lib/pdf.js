@@ -264,7 +264,7 @@ export async function generateRecapPDF(schedules) {
   doc.save(`Rekap-Riwayat-Preventif-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
-export function generateReportPDF(services, { isAdmin }) {
+export function generateReportPDF(services, { isAdmin }, prevHistory = []) {
   const doc = new jsPDF();
   const w = doc.internal.pageSize.getWidth();
   doc.setFillColor(15, 23, 42);
@@ -299,5 +299,29 @@ export function generateReportPDF(services, { isAdmin }) {
     doc.setFont(undefined, "bold");
     doc.text(`Total Biaya: ${formatRupiah(total)}`, 14, doc.lastAutoTable.finalY + 10);
   }
+
+  if (prevHistory && prevHistory.length > 0) {
+    const startY = doc.lastAutoTable.finalY + (isAdmin ? 16 : 10);
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(12);
+    doc.text("RIWAYAT PREVENTIF (CHECKSHEET)", 14, startY);
+    autoTable(doc, {
+      startY: startY + 4,
+      head: [["Mesin", "Jenis", "Jatuh Tempo", "OK", "Tidak OK", "Operator", "Teknisi"]],
+      body: prevHistory.map((p) => [
+        p.machine_name || "-", p.maintenance_type || "-", formatDate(p.due_date),
+        String(p.ok || 0), String(p.not_ok || 0), p.operator_name || "-",
+        p.technician_name || "-",
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [2, 132, 199] },
+      styles: { fontSize: 8 },
+      didParseCell: (d) => {
+        if (d.section === "body" && d.column.index === 4 && d.cell.raw !== "0") d.cell.styles.textColor = [225, 29, 72];
+        if (d.section === "body" && d.column.index === 3 && d.cell.raw !== "0") d.cell.styles.textColor = [5, 150, 105];
+      },
+    });
+  }
+
   doc.save(`Laporan-Servis-${Date.now()}.pdf`);
 }

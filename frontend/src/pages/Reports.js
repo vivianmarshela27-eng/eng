@@ -13,6 +13,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { CheckCircle2, XCircle, ClipboardCheck } from "lucide-react";
 import { FileDown, Upload, Trash2, FileText, Loader2, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -129,8 +130,15 @@ export default function Reports() {
     { name: "Perbaikan", value: data.by_type?.perbaikan || 0, fill: "#D97706" },
   ];
 
+  const prev = data.preventive || {};
+  const prevHistory = data.preventive_history || [];
+  const prevChart = [
+    { name: "OK", value: prev.total_ok || 0, fill: "#059669" },
+    { name: "Tidak OK", value: prev.total_not_ok || 0, fill: "#E11D48" },
+  ];
+
   const exportPdf = () => {
-    generateReportPDF(data.services || [], { isAdmin });
+    generateReportPDF(data.services || [], { isAdmin }, prevHistory);
     toast.success("Laporan PDF diunduh");
   };
 
@@ -141,6 +149,35 @@ export default function Reports() {
           <FileDown className="w-4 h-4 mr-2" /> Ekspor PDF
         </Button>
       </PageHeader>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card className="p-6" data-testid="preventive-chart-card">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">Hasil Pemeriksaan Preventif</h3>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={prevChart}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="name" fontSize={12} />
+              <YAxis fontSize={12} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                {prevChart.map((d, i) => <Cell key={i} fill={d.fill} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+        <Card className="p-6 flex flex-col justify-center" data-testid="preventive-summary-card">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4 flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-sky-600" /> Ringkasan Riwayat Preventif
+          </h3>
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between border-b pb-2"><span className="text-slate-500">Checksheet Terisi</span><span className="font-bold" data-testid="stat-total-checksheets">{prev.total_checksheets || 0} dari {prev.total_schedules || 0} jadwal</span></div>
+            <div className="flex justify-between border-b pb-2"><span className="text-slate-500">Total Item Diperiksa</span><span className="font-bold">{prev.total_items || 0}</span></div>
+            <div className="flex justify-between border-b pb-2"><span className="text-slate-500 inline-flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Item OK</span><span className="font-bold text-emerald-600">{prev.total_ok || 0}</span></div>
+            <div className="flex justify-between border-b pb-2"><span className="text-slate-500 inline-flex items-center gap-1.5"><XCircle className="w-4 h-4 text-rose-600" /> Item Tidak OK</span><span className="font-bold text-rose-600">{prev.total_not_ok || 0}</span></div>
+            <div className="flex justify-between"><span className="text-slate-500">Checksheet dengan Temuan</span><span className="font-bold text-amber-600">{prev.with_issues || 0}</span></div>
+          </div>
+        </Card>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="p-6">

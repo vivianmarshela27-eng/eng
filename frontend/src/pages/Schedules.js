@@ -16,12 +16,25 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Pencil, Trash2, AlertTriangle, CalendarDays, List } from "lucide-react";
 import { toast } from "sonner";
+import ScheduleCalendar from "@/components/ScheduleCalendar";
+
+const COLORS = [
+  { value: "#0284C7", label: "Biru" },
+  { value: "#059669", label: "Hijau" },
+  { value: "#D97706", label: "Oranye" },
+  { value: "#E11D48", label: "Merah" },
+  { value: "#7C3AED", label: "Ungu" },
+  { value: "#0891B2", label: "Sian" },
+  { value: "#CA8A04", label: "Emas" },
+  { value: "#475569", label: "Abu" },
+];
 
 const empty = {
   machine_id: "", machine_name: "", maintenance_type: "", due_date: "",
-  frequency: "bulanan", technician_id: "", technician_name: "", status: "terjadwal", notes: "",
+  frequency: "bulanan", technician_id: "", technician_name: "", status: "terjadwal", notes: "", color: "#0284C7",
 };
 
 export default function Schedules() {
@@ -33,6 +46,10 @@ export default function Schedules() {
   const [form, setForm] = useState(empty);
   const [editId, setEditId] = useState(null);
   const [delId, setDelId] = useState(null);
+  const [view, setView] = useState(() => sessionStorage.getItem("schedule_view") || "calendar");
+  const [detail, setDetail] = useState(null);
+
+  const changeView = (v) => { if (!v) return; setView(v); sessionStorage.setItem("schedule_view", v); };
 
   const load = () => {
     api.get("/schedules").then((r) => setItems(r.data)).catch(() => {});
@@ -45,6 +62,7 @@ export default function Schedules() {
 
   const openNew = () => { setForm(empty); setEditId(null); setOpen(true); };
   const openEdit = (m) => { setForm({ ...empty, ...m }); setEditId(m.id); setOpen(true); };
+  const openForDate = (dateStr) => { setForm({ ...empty, due_date: dateStr }); setEditId(null); setOpen(true); };
 
   const save = async () => {
     const machine = machines.find((x) => x.id === form.machine_id);
@@ -74,13 +92,31 @@ export default function Schedules() {
   return (
     <div>
       <PageHeader title="Jadwal Pemeliharaan" subtitle="Jadwal preventif per mesin.">
-        {isAdmin && (
-          <Button onClick={openNew} data-testid="add-schedule-button" className="bg-sky-600 hover:bg-sky-500">
-            <Plus className="w-4 h-4 mr-2" /> Tambah Jadwal
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          <Tabs value={view} onValueChange={changeView}>
+            <TabsList data-testid="schedule-view-toggle">
+              <TabsTrigger value="calendar" data-testid="view-calendar"><CalendarDays className="w-4 h-4 mr-1.5" /> Kalender</TabsTrigger>
+              <TabsTrigger value="table" data-testid="view-table"><List className="w-4 h-4 mr-1.5" /> Tabel</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {isAdmin && (
+            <Button onClick={openNew} data-testid="add-schedule-button" className="bg-sky-600 hover:bg-sky-500">
+              <Plus className="w-4 h-4 mr-2" /> Tambah Jadwal
+            </Button>
+          )}
+        </div>
       </PageHeader>
 
+      {view === "calendar" ? (
+        <Card className="p-4 sm:p-6 overflow-x-auto">
+          <ScheduleCalendar
+            schedules={items}
+            isAdmin={isAdmin}
+            onPickDate={openForDate}
+            onOpenSchedule={(s) => setDetail(s)}
+          />
+        </Card>
+      ) : (
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <Table data-testid="schedules-table">
@@ -101,7 +137,12 @@ export default function Schedules() {
               )}
               {items.map((s) => (
                 <TableRow key={s.id} className={isOverdue(s) ? "bg-rose-50/60 dark:bg-rose-950/20" : ""} data-testid={`schedule-row-${s.id}`}>
-                  <TableCell className="font-semibold">{s.machine_name}</TableCell>
+                  <TableCell className="font-semibold">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.color || "#0284C7" }} />
+                      {s.machine_name}
+                    </span>
+                  </TableCell>
                   <TableCell>{s.maintenance_type}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5">
@@ -124,6 +165,7 @@ export default function Schedules() {
           </Table>
         </div>
       </Card>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
@@ -174,6 +216,22 @@ export default function Schedules() {
               </Select>
             </div>
             <div className="col-span-2">
+              <Label>Warna Label Kalender</Label>
+              <div className="flex flex-wrap gap-2 mt-1.5" data-testid="schedule-color-picker">
+                {COLORS.map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setForm({ ...form, color: c.value })}
+                    title={c.label}
+                    style={{ backgroundColor: c.value }}
+                    className={`w-7 h-7 rounded-full transition-transform ${form.color === c.value ? "ring-2 ring-offset-2 ring-slate-900 dark:ring-white scale-110" : "hover:scale-105"}`}
+                    data-testid={`color-${c.value.replace("#", "")}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="col-span-2">
               <Label>Catatan</Label>
               <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
@@ -181,6 +239,35 @@ export default function Schedules() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
             <Button onClick={save} data-testid="save-schedule-button" className="bg-sky-600 hover:bg-sky-500">Simpan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!detail} onOpenChange={(v) => !v && setDetail(null)}>
+        <DialogContent className="max-w-md" data-testid="schedule-detail-dialog">
+          <DialogHeader><DialogTitle>Detail Jadwal</DialogTitle></DialogHeader>
+          {detail && (
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: detail.color || "#0284C7" }} />
+                <span className="font-semibold text-base">{detail.machine_name}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1"><span className="text-slate-500 col-span-1">Jenis</span><span className="col-span-2 font-medium">{detail.maintenance_type}</span></div>
+              <div className="grid grid-cols-3 gap-1"><span className="text-slate-500 col-span-1">Jatuh Tempo</span><span className="col-span-2 font-medium">{formatDate(detail.due_date)}</span></div>
+              <div className="grid grid-cols-3 gap-1"><span className="text-slate-500 col-span-1">Frekuensi</span><span className="col-span-2 capitalize">{detail.frequency}</span></div>
+              <div className="grid grid-cols-3 gap-1"><span className="text-slate-500 col-span-1">Teknisi</span><span className="col-span-2">{detail.technician_name || "-"}</span></div>
+              <div className="grid grid-cols-3 gap-1"><span className="text-slate-500 col-span-1">Status</span><span className="col-span-2"><StatusBadge status={isOverdue(detail) ? "jatuh_tempo" : detail.status} /></span></div>
+              {detail.notes && <div className="grid grid-cols-3 gap-1"><span className="text-slate-500 col-span-1">Catatan</span><span className="col-span-2 whitespace-pre-wrap">{detail.notes}</span></div>}
+            </div>
+          )}
+          <DialogFooter>
+            {isAdmin && detail && (
+              <>
+                <Button variant="outline" className="text-rose-600" onClick={() => { setDelId(detail.id); setDetail(null); }} data-testid="detail-delete-button"><Trash2 className="w-4 h-4 mr-1.5" /> Hapus</Button>
+                <Button className="bg-sky-600 hover:bg-sky-500" onClick={() => { openEdit(detail); setDetail(null); }} data-testid="detail-edit-button"><Pencil className="w-4 h-4 mr-1.5" /> Ubah</Button>
+              </>
+            )}
+            {!isAdmin && <Button variant="outline" onClick={() => setDetail(null)}>Tutup</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>
