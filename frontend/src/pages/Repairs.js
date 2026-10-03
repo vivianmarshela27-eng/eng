@@ -26,7 +26,8 @@ const photoUrl = (p) => `${API}/files/${p.file_id}/download`;
 const empty = {
   machine_id: "", machine_name: "", date: new Date().toISOString().slice(0, 10),
   service_type: "preventif", problem: "", action: "", technician_id: "", technician_name: "",
-  operator_name: "", used_parts: [], downtime_hours: 0, status: "selesai",
+  operator_name: "", used_parts: [], downtime_hours: 0, repair_duration_hours: 0,
+  repair_start: "", repair_end: "", downtime_start: "", downtime_end: "", status: "selesai",
   operator_signature: "", technician_signature: "", photos: [],
 };
 
@@ -92,7 +93,7 @@ export default function Repairs() {
     const machine = machines.find((x) => x.id === form.machine_id);
     const tech = techs.find((x) => x.id === form.technician_id);
     const payload = {
-      ...form, downtime_hours: Number(form.downtime_hours) || 0,
+      ...form,
       machine_name: machine?.name || form.machine_name,
       technician_name: tech?.name || form.technician_name,
     };
@@ -131,13 +132,14 @@ export default function Repairs() {
                 <TableHead>Bukti TTD</TableHead>
                 <TableHead>Foto</TableHead>
                 <TableHead>Waktu (jam)</TableHead>
+                <TableHead>Perbaikan (jam)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 && (
-                <TableRow><TableCell colSpan={9} className="text-center text-slate-400 py-8">Belum ada catatan servis.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-slate-400 py-8">Belum ada catatan servis.</TableCell></TableRow>
               )}
               {items.map((s) => (
                 <TableRow key={s.id} data-testid={`service-row-${s.id}`}>
@@ -164,6 +166,7 @@ export default function Repairs() {
                     )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap font-mono" data-testid={`downtime-service-${s.id}`}>{(s.downtime_hours || 0)} jam</TableCell>
+                  <TableCell className="whitespace-nowrap font-mono" data-testid={`repairdur-service-${s.id}`}>{(s.repair_duration_hours || 0)} jam</TableCell>
                   <TableCell><StatusBadge status={s.status} /></TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="icon" onClick={() => generateServicePDF(s, { isAdmin })} data-testid={`pdf-service-${s.id}`} title="Unduh BAP PDF">
@@ -225,7 +228,15 @@ export default function Repairs() {
               </Select>
             </div>
             <div><Label>Nama Operator</Label><Input value={form.operator_name} onChange={(e) => setForm({ ...form, operator_name: e.target.value })} data-testid="service-operator-input" /></div>
-            <div><Label>Waktu Dipakai (jam)</Label><Input type="number" min="0" step="0.5" value={form.downtime_hours} onChange={(e) => setForm({ ...form, downtime_hours: e.target.value })} data-testid="service-downtime-input" /></div>
+            <div className="col-span-2 border-t pt-4 grid grid-cols-2 gap-3">
+              <div className="col-span-2"><Label className="text-xs uppercase tracking-wider text-slate-500">Durasi Perbaikan (mulai → selesai)</Label></div>
+              <div><Label>Mulai Perbaikan</Label><Input type="datetime-local" value={form.repair_start || ""} onChange={(e) => setForm({ ...form, repair_start: e.target.value })} data-testid="service-repair-start" /></div>
+              <div><Label>Selesai Perbaikan</Label><Input type="datetime-local" value={form.repair_end || ""} onChange={(e) => setForm({ ...form, repair_end: e.target.value })} data-testid="service-repair-end" /></div>
+              <div className="col-span-2 mt-2"><Label className="text-xs uppercase tracking-wider text-slate-500">Downtime Mesin (berhenti → jalan lagi)</Label></div>
+              <div><Label>Mesin Berhenti</Label><Input type="datetime-local" value={form.downtime_start || ""} onChange={(e) => setForm({ ...form, downtime_start: e.target.value })} data-testid="service-downtime-start" /></div>
+              <div><Label>Mesin Jalan Lagi</Label><Input type="datetime-local" value={form.downtime_end || ""} onChange={(e) => setForm({ ...form, downtime_end: e.target.value })} data-testid="service-downtime-end" /></div>
+              <p className="col-span-2 text-xs text-slate-400">Durasi dihitung otomatis dari waktu mulai & selesai. Kosongkan bila tidak diperlukan.</p>
+            </div>
 
             {/* Sparepart usage */}
             <div className="col-span-2 border-t pt-4">

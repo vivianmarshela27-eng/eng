@@ -21,6 +21,8 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 
+const MACHINE_COLORS = ["#0284C7", "#059669", "#D97706", "#E11D48", "#7C3AED", "#0891B2"];
+
 export default function Reports() {
   const { isAdmin } = useAuth();
   const [data, setData] = useState(null);
@@ -136,6 +138,7 @@ export default function Reports() {
     { name: "OK", value: prev.total_ok || 0, fill: "#059669" },
     { name: "Tidak OK", value: prev.total_not_ok || 0, fill: "#E11D48" },
   ];
+  const prevByType = (data.preventive_by_type || []).map((t, i) => ({ ...t, fill: MACHINE_COLORS[i % MACHINE_COLORS.length] }));
 
   const exportPdf = () => {
     generateReportPDF(data.services || [], { isAdmin }, prevHistory);
@@ -165,8 +168,7 @@ export default function Reports() {
             </BarChart>
           </ResponsiveContainer>
         </Card>
-        <Card className="p-6 flex flex-col justify-center" data-testid="preventive-summary-card">
-          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4 flex items-center gap-2">
+        <Card className="p-6 flex flex-col justify-center" data-testid="preventive-summary-card">          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4 flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-sky-600" /> Ringkasan Riwayat Preventif
           </h3>
           <div className="space-y-3 text-sm">
@@ -178,6 +180,25 @@ export default function Reports() {
           </div>
         </Card>
       </div>
+
+      <Card className="p-6 mb-6" data-testid="preventive-bytype-card">
+        <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">Riwayat Preventif Berdasarkan Jenis</h3>
+        {prevByType.length === 0 ? (
+          <p className="text-sm text-slate-400">Belum ada checksheet preventif terisi.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={prevByType}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="type" fontSize={12} />
+              <YAxis fontSize={12} allowDecimals={false} />
+              <Tooltip formatter={(v) => `${v} checksheet`} />
+              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                {prevByType.map((d, i) => <Cell key={i} fill={d.fill} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="p-6">

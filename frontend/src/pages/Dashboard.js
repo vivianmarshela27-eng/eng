@@ -28,6 +28,7 @@ import {
   Line,
 } from "recharts";
 
+const MACHINE_COLORS = ["#0284C7", "#059669", "#D97706", "#E11D48", "#7C3AED", "#0891B2"];
 const PIE_COLORS = ["#059669", "#D97706", "#E11D48", "#64748b"];
 
 function StatCard({ icon: Icon, label, value, tone, testId }) {
@@ -150,21 +151,77 @@ export default function Dashboard() {
 
         <Card className="p-6" data-testid="downtime-chart-card">
           <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
-            Kurva Downtime Mesin (jam / bulan)
+            Kurva Downtime per Mesin (jam / bulan)
           </h3>
-          {(stats.downtime_trend || []).length === 0 ? (
+          {(stats.downtime_by_machine_month || []).length === 0 ? (
             <p className="text-sm text-slate-400">Belum ada data downtime servis.</p>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={stats.downtime_trend}>
+              <LineChart data={stats.downtime_by_machine_month}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" fontSize={12} />
                 <YAxis fontSize={12} allowDecimals={false} tickFormatter={(v) => `${v}j`} />
                 <Tooltip formatter={(v) => `${v} jam`} />
-                <Line type="monotone" dataKey="hours" stroke="#0284C7" strokeWidth={3} dot={{ r: 4 }} />
+                {(stats.downtime_machine_series || []).map((mac, i) => (
+                  <Line key={mac} type="monotone" dataKey={mac} stroke={MACHINE_COLORS[i % MACHINE_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
+                ))}
               </LineChart>
             </ResponsiveContainer>
           )}
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card className="p-6" data-testid="downtime-bar-card">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
+            Total Downtime per Mesin (jam)
+          </h3>
+          {(stats.downtime_by_machine || []).length === 0 ? (
+            <p className="text-sm text-slate-400">Belum ada data downtime servis.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={stats.downtime_by_machine} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" fontSize={12} allowDecimals={false} />
+                <YAxis type="category" dataKey="machine" fontSize={11} width={120} />
+                <Tooltip formatter={(v) => `${v} jam`} />
+                <Bar dataKey="hours" fill="#0284C7" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card className="overflow-hidden" data-testid="repair-history-card">
+          <div className="p-4 border-b">
+            <h3 className="font-heading text-lg font-bold uppercase tracking-tight">Riwayat Perbaikan</h3>
+          </div>
+          <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-100 dark:bg-slate-800 text-xs uppercase text-slate-500 sticky top-0">
+                <tr>
+                  <th className="p-2 text-left">Tanggal</th>
+                  <th className="p-2 text-left">Mesin</th>
+                  <th className="p-2 text-left">Masalah</th>
+                  <th className="p-2 text-left">Downtime</th>
+                  <th className="p-2 text-left">Perbaikan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(stats.repair_history || []).length === 0 && (
+                  <tr><td colSpan={5} className="text-center text-slate-400 py-8">Belum ada riwayat perbaikan.</td></tr>
+                )}
+                {(stats.repair_history || []).map((r) => (
+                  <tr key={r.id} className="border-t" data-testid={`repair-history-${r.id}`}>
+                    <td className="p-2 whitespace-nowrap">{formatDate(r.date)}</td>
+                    <td className="p-2 font-semibold">{r.machine_name}</td>
+                    <td className="p-2 max-w-[180px] truncate" title={r.problem}>{r.problem || "-"}</td>
+                    <td className="p-2 whitespace-nowrap font-mono">{r.downtime_hours || 0} j</td>
+                    <td className="p-2 whitespace-nowrap font-mono">{r.repair_duration_hours || 0} j</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
 

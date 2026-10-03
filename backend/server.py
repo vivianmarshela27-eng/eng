@@ -536,10 +536,31 @@ class ServiceIn(BaseModel):
     operator_name: Optional[str] = ""
     used_parts: List[UsedPart] = []
     downtime_hours: float = 0
+    repair_duration_hours: float = 0
+    repair_start: Optional[str] = ""
+    repair_end: Optional[str] = ""
+    downtime_start: Optional[str] = ""
+    downtime_end: Optional[str] = ""
     status: str = "selesai"  # dalam_proses | selesai
     operator_signature: Optional[str] = ""
     technician_signature: Optional[str] = ""
     photos: List[ServicePhoto] = []
+
+
+def hours_between(a: str, b: str) -> float:
+    try:
+        diff = (datetime.fromisoformat(b) - datetime.fromisoformat(a)).total_seconds() / 3600.0
+        return round(diff, 2) if diff > 0 else 0
+    except Exception:
+        return 0
+
+
+def apply_durations(doc: dict) -> dict:
+    if doc.get("repair_start") and doc.get("repair_end"):
+        doc["repair_duration_hours"] = hours_between(doc["repair_start"], doc["repair_end"])
+    if doc.get("downtime_start") and doc.get("downtime_end"):
+        doc["downtime_hours"] = hours_between(doc["downtime_start"], doc["downtime_end"])
+    return doc
 
 
 async def apply_stock_reduction(used_parts: list):
@@ -558,7 +579,7 @@ async def list_services(machine_id: Optional[str] = None, user: dict = Depends(g
 
 @api.post("/services")
 async def create_service(payload: ServiceIn, user: dict = Depends(require_admin)):
-    doc = payload.model_dump()
+    doc = apply_durations(payload.model_dump())
     doc["id"] = str(uuid.uuid4())
     doc["created_at"] = now_iso()
     await db.services.insert_one(doc)
@@ -568,7 +589,7 @@ async def create_service(payload: ServiceIn, user: dict = Depends(require_admin)
 
 @api.put("/services/{item_id}")
 async def update_service(item_id: str, payload: ServiceIn, user: dict = Depends(require_admin)):
-    res = await db.services.find_one_and_update({"id": item_id}, {"$set": payload.model_dump()},
+    res = await db.services.find_one_and_update({"id": item_id}, {"$set": apply_durations(payload.model_dump())},
                                                 projection={"_id": 0}, return_document=True)
     if not res:
         raise HTTPException(status_code=404, detail="Catatan servis tidak ditemukan")
@@ -726,6 +747,39 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
     downtime_trend = [{"month": m, "hours": round(monthly_dt[m], 1)} for m in dt_months]
     total_downtime = round(sum(sv.get("downtime_hours", 0) or 0 for sv in services), 1)
 
+    # Downtime per mesin (total) + per mesin per bulan
+    dt_by_machine = {}
+    machine_month = {}
+    months_all = set()
+    for sv in services:
+        mac = sv.get("machine_name", "-") or "-"
+        h = sv.get("downtime_hours", 0) or 0
+        dt_by_machine[mac] = dt_by_machine.get(mac, 0) + h
+        d = parse_date(sv.get("date", ""))
+        if d:
+            mk = d.strftime("%Y-%m")
+            months_all.add(mk)
+            machine_month[(mk, mac)] = machine_month.get((mk, mac), 0) + h
+    downtime_by_machine = [{"machine": k, "hours": round(v, 1)} for k, v in
+                           sorted(dt_by_machine.items(), key=lambda x: -x[1]) if v > 0][:10]
+    top_machines = [d["machine"] for d in downtime_by_machine][:6]
+    months = sorted(months_all)[-6:]
+    downtime_by_machine_month = []
+    for mk in months:
+        row = {"month": mk}
+        for mac in top_machines:
+            row[mac] = round(machine_month.get((mk, mac), 0), 1)
+        downtime_by_machine_month.append(row)
+
+    repair_history = sorted(
+        [{"id": s.get("id"), "date": s.get("date", ""), "machine_name": s.get("machine_name", ""),
+          "service_type": s.get("service_type", ""), "problem": s.get("problem", ""),
+          "action": s.get("action", ""), "technician_name": s.get("technician_name", ""),
+          "repair_duration_hours": s.get("repair_duration_hours", 0) or 0,
+          "downtime_hours": s.get("downtime_hours", 0) or 0, "status": s.get("status", "")}
+         for s in services if s.get("service_type") == "perbaikan"],
+        key=lambda x: x.get("date", ""), reverse=True)[:20]
+
     result = {
         "total_machines": len(machines),
         "status_counts": status_counts,
@@ -737,6 +791,10 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
         "total_services": len(services),
         "downtime_trend": downtime_trend,
         "total_downtime": total_downtime,
+        "downtime_by_machine": downtime_by_machine,
+        "downtime_by_machine_month": downtime_by_machine_month,
+        "downtime_machine_series": top_machines,
+        "repair_history": repair_history,
     }
 
     return result
@@ -777,6 +835,12 @@ async def reports_summary(user: dict = Depends(get_current_user)):
         })
     preventive_history.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
 
+    prev_by_type = {}
+    for p in preventive_history:
+        t = p.get("maintenance_type") or "Lainnya"
+        prev_by_type[t] = prev_by_type.get(t, 0) + 1
+    preventive_by_type = [{"type": k, "count": v} for k, v in sorted(prev_by_type.items(), key=lambda x: -x[1])]
+
     result = {
         "by_type": by_type,
         "services": services,
@@ -789,6 +853,7 @@ async def reports_summary(user: dict = Depends(get_current_user)):
             "total_not_ok": total_not_ok,
         },
         "preventive_history": preventive_history,
+        "preventive_by_type": preventive_by_type,
     }
     return result
 
