@@ -535,18 +535,11 @@ class ServiceIn(BaseModel):
     technician_name: Optional[str] = ""
     operator_name: Optional[str] = ""
     used_parts: List[UsedPart] = []
-    cost: float = 0
+    downtime_hours: float = 0
     status: str = "selesai"  # dalam_proses | selesai
     operator_signature: Optional[str] = ""
     technician_signature: Optional[str] = ""
     photos: List[ServicePhoto] = []
-
-
-def strip_cost(item: dict, user: dict) -> dict:
-    if not is_admin(user):
-        item = dict(item)
-        item.pop("cost", None)
-    return item
 
 
 async def apply_stock_reduction(used_parts: list):
@@ -560,7 +553,7 @@ async def apply_stock_reduction(used_parts: list):
 async def list_services(machine_id: Optional[str] = None, user: dict = Depends(get_current_user)):
     q = {"machine_id": machine_id} if machine_id else {}
     items = await db.services.find(q, {"_id": 0}).sort("date", -1).to_list(1000)
-    return [strip_cost(i, user) for i in items]
+    return items
 
 
 @api.post("/services")
@@ -722,6 +715,17 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
 
     low_stock = [sp for sp in spareparts if sp.get("stock", 0) <= sp.get("min_stock", 0)]
 
+    # Downtime trend (total jam servis per bulan, 6 bulan terakhir)
+    monthly_dt = {}
+    for sv in services:
+        d = parse_date(sv.get("date", ""))
+        if d:
+            key = d.strftime("%Y-%m")
+            monthly_dt[key] = monthly_dt.get(key, 0) + (sv.get("downtime_hours", 0) or 0)
+    dt_months = sorted(monthly_dt.keys())[-6:]
+    downtime_trend = [{"month": m, "hours": round(monthly_dt[m], 1)} for m in dt_months]
+    total_downtime = round(sum(sv.get("downtime_hours", 0) or 0 for sv in services), 1)
+
     result = {
         "total_machines": len(machines),
         "status_counts": status_counts,
@@ -731,18 +735,10 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
         "low_stock_items": [{"name": i["name"], "code": i.get("code"), "stock": i.get("stock"),
                              "min_stock": i.get("min_stock")} for i in low_stock][:8],
         "total_services": len(services),
+        "downtime_trend": downtime_trend,
+        "total_downtime": total_downtime,
     }
 
-    if is_admin(user):
-        monthly = {}
-        for sv in services:
-            d = parse_date(sv.get("date", ""))
-            if d:
-                key = d.strftime("%Y-%m")
-                monthly[key] = monthly.get(key, 0) + (sv.get("cost", 0) or 0)
-        months = sorted(monthly.keys())[-6:]
-        result["monthly_cost"] = [{"month": m, "cost": monthly[m]} for m in months]
-        result["total_cost"] = sum(sv.get("cost", 0) or 0 for sv in services)
     return result
 
 
@@ -783,7 +779,7 @@ async def reports_summary(user: dict = Depends(get_current_user)):
 
     result = {
         "by_type": by_type,
-        "services": [strip_cost(s, user) for s in services],
+        "services": services,
         "preventive": {
             "total_checksheets": len(filled),
             "total_schedules": len(schedules),
@@ -883,13 +879,13 @@ async def seed_data():
          "date": (today - timedelta(days=5)).isoformat(), "service_type": "perbaikan",
          "problem": "Heater zone 2 tidak panas", "action": "Ganti heater band dan thermocouple",
          "technician_id": tids[1], "technician_name": "Agus Setiawan", "operator_name": "Rahmat",
-         "used_parts": [], "cost": 850000, "status": "selesai",
+         "used_parts": [], "downtime_hours": 4.5, "status": "selesai",
          "operator_signature": "", "technician_signature": ""},
         {"id": str(uuid.uuid4()), "machine_id": mids[0], "machine_name": machines[0]["name"],
          "date": (today - timedelta(days=20)).isoformat(), "service_type": "preventif",
          "problem": "Perawatan rutin bulanan", "action": "Pelumasan, cek backlash, kalibrasi",
          "technician_id": tids[0], "technician_name": "Budi Santoso", "operator_name": "Sutrisno",
-         "used_parts": [], "cost": 300000, "status": "selesai",
+         "used_parts": [], "downtime_hours": 2.0, "status": "selesai",
          "operator_signature": "", "technician_signature": ""},
     ]
     for s in services:

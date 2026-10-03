@@ -3,7 +3,7 @@ import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
-import { formatRupiah, formatDate, HIDDEN } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { generateReportPDF } from "@/lib/pdf";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -200,9 +200,7 @@ export default function Reports() {
             <div className="flex justify-between border-b pb-2"><span className="text-slate-500">Total Catatan Servis</span><span className="font-bold">{(data.services || []).length}</span></div>
             <div className="flex justify-between border-b pb-2"><span className="text-slate-500">Preventif</span><span className="font-bold">{data.by_type?.preventif || 0}</span></div>
             <div className="flex justify-between border-b pb-2"><span className="text-slate-500">Perbaikan</span><span className="font-bold">{data.by_type?.perbaikan || 0}</span></div>
-            {isAdmin && (
-              <div className="flex justify-between"><span className="text-slate-500">Total Biaya</span><span className="font-bold text-sky-700">{formatRupiah((data.services || []).reduce((a, s) => a + (s.cost || 0), 0))}</span></div>
-            )}
+            <div className="flex justify-between"><span className="text-slate-500">Total Downtime</span><span className="font-bold text-sky-700">{(data.services || []).reduce((a, s) => a + (s.downtime_hours || 0), 0)} jam</span></div>
           </div>
         </Card>
       </div>
@@ -218,12 +216,12 @@ export default function Reports() {
                 <TableHead>Jenis</TableHead>
                 <TableHead>Teknisi</TableHead>
                 <TableHead>Status</TableHead>
-                {isAdmin && <TableHead>Biaya</TableHead>}
+                <TableHead>Waktu (jam)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(data.services || []).length === 0 && (
-                <TableRow><TableCell colSpan={isAdmin ? 6 : 5} className="text-center text-slate-400 py-8">Belum ada data.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-slate-400 py-8">Belum ada data.</TableCell></TableRow>
               )}
               {(data.services || []).map((s) => (
                 <TableRow key={s.id}>
@@ -232,14 +230,13 @@ export default function Reports() {
                   <TableCell><StatusBadge status={s.service_type} /></TableCell>
                   <TableCell>{s.technician_name || "-"}</TableCell>
                   <TableCell><StatusBadge status={s.status} /></TableCell>
-                  {isAdmin && <TableCell className="font-mono">{formatRupiah(s.cost)}</TableCell>}
+                  <TableCell className="font-mono">{s.downtime_hours || 0} jam</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       </Card>
-      {!isAdmin && <p className="text-xs text-slate-400 mt-3">* Informasi biaya hanya untuk Administrator ({HIDDEN}).</p>}
 
       <Card className="overflow-hidden mt-6" data-testid="document-library">
         <div className="p-4 border-b flex flex-wrap items-center justify-between gap-3">

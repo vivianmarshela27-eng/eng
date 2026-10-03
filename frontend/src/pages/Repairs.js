@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import StatusBadge from "@/components/StatusBadge";
 import SignaturePad from "@/components/SignaturePad";
-import { formatRupiah, formatDate, HIDDEN } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { generateServicePDF } from "@/lib/pdf";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ const photoUrl = (p) => `${API}/files/${p.file_id}/download`;
 const empty = {
   machine_id: "", machine_name: "", date: new Date().toISOString().slice(0, 10),
   service_type: "preventif", problem: "", action: "", technician_id: "", technician_name: "",
-  operator_name: "", used_parts: [], cost: 0, status: "selesai",
+  operator_name: "", used_parts: [], downtime_hours: 0, status: "selesai",
   operator_signature: "", technician_signature: "", photos: [],
 };
 
@@ -92,7 +92,7 @@ export default function Repairs() {
     const machine = machines.find((x) => x.id === form.machine_id);
     const tech = techs.find((x) => x.id === form.technician_id);
     const payload = {
-      ...form, cost: Number(form.cost),
+      ...form, downtime_hours: Number(form.downtime_hours) || 0,
       machine_name: machine?.name || form.machine_name,
       technician_name: tech?.name || form.technician_name,
     };
@@ -130,14 +130,14 @@ export default function Repairs() {
                 <TableHead>Teknisi</TableHead>
                 <TableHead>Bukti TTD</TableHead>
                 <TableHead>Foto</TableHead>
-                {isAdmin && <TableHead>Biaya</TableHead>}
+                <TableHead>Waktu (jam)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.length === 0 && (
-                <TableRow><TableCell colSpan={isAdmin ? 9 : 8} className="text-center text-slate-400 py-8">Belum ada catatan servis.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-slate-400 py-8">Belum ada catatan servis.</TableCell></TableRow>
               )}
               {items.map((s) => (
                 <TableRow key={s.id} data-testid={`service-row-${s.id}`}>
@@ -154,7 +154,6 @@ export default function Repairs() {
                       <span className="text-xs text-slate-400">Belum</span>
                     )}
                   </TableCell>
-                  {isAdmin && <TableCell className="font-mono">{formatRupiah(s.cost)}</TableCell>}
                   <TableCell>
                     {(s.photos || []).length > 0 ? (
                       <button onClick={() => setGallery(s)} className="inline-flex items-center gap-1 text-sky-600 text-xs font-semibold hover:underline" data-testid={`photos-service-${s.id}`}>
@@ -164,6 +163,7 @@ export default function Repairs() {
                       <span className="text-xs text-slate-400">-</span>
                     )}
                   </TableCell>
+                  <TableCell className="whitespace-nowrap font-mono" data-testid={`downtime-service-${s.id}`}>{(s.downtime_hours || 0)} jam</TableCell>
                   <TableCell><StatusBadge status={s.status} /></TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <Button variant="ghost" size="icon" onClick={() => generateServicePDF(s, { isAdmin })} data-testid={`pdf-service-${s.id}`} title="Unduh BAP PDF">
@@ -182,8 +182,6 @@ export default function Repairs() {
           </Table>
         </div>
       </Card>
-
-      {!isAdmin && <p className="text-xs text-slate-400 mt-3">* Informasi biaya servis hanya dapat dilihat oleh Administrator ({HIDDEN}).</p>}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -227,7 +225,7 @@ export default function Repairs() {
               </Select>
             </div>
             <div><Label>Nama Operator</Label><Input value={form.operator_name} onChange={(e) => setForm({ ...form, operator_name: e.target.value })} data-testid="service-operator-input" /></div>
-            <div><Label>Biaya (Rp)</Label><Input type="number" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} data-testid="service-cost-input" /></div>
+            <div><Label>Waktu Dipakai (jam)</Label><Input type="number" min="0" step="0.5" value={form.downtime_hours} onChange={(e) => setForm({ ...form, downtime_hours: e.target.value })} data-testid="service-downtime-input" /></div>
 
             {/* Sparepart usage */}
             <div className="col-span-2 border-t pt-4">

@@ -4,13 +4,13 @@ import { useAuth } from "@/context/AuthContext";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
 import StatusBadge from "@/components/StatusBadge";
-import { formatRupiah, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import {
   Cog,
   CheckCircle2,
   CalendarClock,
   AlertTriangle,
-  Wallet,
+  Timer,
   Wrench,
 } from "lucide-react";
 import {
@@ -110,24 +110,22 @@ export default function Dashboard() {
         />
       </div>
 
-      {isAdmin && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <StatCard
-            icon={Wallet}
-            label="Total Biaya Servis"
-            value={formatRupiah(stats.total_cost)}
-            tone="bg-slate-900 text-white"
-            testId="stat-total-cost"
-          />
-          <StatCard
-            icon={Wrench}
-            label="Total Catatan Servis"
-            value={stats.total_services}
-            tone="bg-slate-100 text-slate-700"
-            testId="stat-total-services"
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <StatCard
+          icon={Timer}
+          label="Total Downtime Servis"
+          value={`${stats.total_downtime || 0} jam`}
+          tone="bg-slate-900 text-white"
+          testId="stat-total-downtime"
+        />
+        <StatCard
+          icon={Wrench}
+          label="Total Catatan Servis"
+          value={stats.total_services}
+          tone="bg-slate-100 text-slate-700"
+          testId="stat-total-services"
+        />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <Card className="p-6">
@@ -150,33 +148,24 @@ export default function Dashboard() {
           )}
         </Card>
 
-        {isAdmin ? (
-          <Card className="p-6">
-            <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
-              Biaya Servis per Bulan
-            </h3>
-            {(stats.monthly_cost || []).length === 0 ? (
-              <p className="text-sm text-slate-400">Belum ada data biaya.</p>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={stats.monthly_cost}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="month" fontSize={12} />
-                  <YAxis fontSize={12} tickFormatter={(v) => `${v / 1000}k`} />
-                  <Tooltip formatter={(v) => formatRupiah(v)} />
-                  <Line type="monotone" dataKey="cost" stroke="#0284C7" strokeWidth={3} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </Card>
-        ) : (
-          <Card className="p-6 flex flex-col items-center justify-center text-center">
-            <Wallet className="w-10 h-10 text-slate-300 mb-3" />
-            <p className="text-sm text-slate-400">
-              Data biaya servis hanya tersedia untuk Administrator.
-            </p>
-          </Card>
-        )}
+        <Card className="p-6" data-testid="downtime-chart-card">
+          <h3 className="font-heading text-lg font-bold uppercase tracking-tight mb-4">
+            Kurva Downtime Mesin (jam / bulan)
+          </h3>
+          {(stats.downtime_trend || []).length === 0 ? (
+            <p className="text-sm text-slate-400">Belum ada data downtime servis.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={stats.downtime_trend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" fontSize={12} />
+                <YAxis fontSize={12} allowDecimals={false} tickFormatter={(v) => `${v}j`} />
+                <Tooltip formatter={(v) => `${v} jam`} />
+                <Line type="monotone" dataKey="hours" stroke="#0284C7" strokeWidth={3} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

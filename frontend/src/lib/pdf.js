@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatRupiah, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
 const TYPE_LABEL = { preventif: "Pemeliharaan Preventif", perbaikan: "Perbaikan (Breakdown)" };
 
@@ -59,8 +59,8 @@ export async function generateServicePDF(sv, { isAdmin }) {
     ["Deskripsi Masalah", sv.problem || "-"],
     ["Tindakan", sv.action || "-"],
     ["Status", sv.status === "selesai" ? "Selesai" : "Dalam Proses"],
+    ["Waktu Dipakai", `${sv.downtime_hours || 0} jam`],
   ];
-  if (isAdmin) rows.push(["Biaya Servis", formatRupiah(sv.cost)]);
 
   autoTable(doc, {
     startY: y,
@@ -278,14 +278,13 @@ export function generateReportPDF(services, { isAdmin }, prevHistory = []) {
   doc.text(`Dicetak: ${formatDate(new Date().toISOString())}`, 14, 19);
   doc.setTextColor(0, 0, 0);
 
-  const head = ["Tanggal", "Mesin", "Jenis", "Teknisi", "Status"];
-  if (isAdmin) head.push("Biaya");
+  const head = ["Tanggal", "Mesin", "Jenis", "Teknisi", "Status", "Waktu (jam)"];
   const body = services.map((s) => {
     const r = [
       formatDate(s.date), s.machine_name, TYPE_LABEL[s.service_type] || s.service_type,
       s.technician_name || "-", s.status === "selesai" ? "Selesai" : "Dalam Proses",
+      String(s.downtime_hours || 0),
     ];
-    if (isAdmin) r.push(formatRupiah(s.cost));
     return r;
   });
 
@@ -294,10 +293,10 @@ export function generateReportPDF(services, { isAdmin }, prevHistory = []) {
     headStyles: { fillColor: [2, 132, 199] }, styles: { fontSize: 8 },
   });
 
-  if (isAdmin) {
-    const total = services.reduce((a, s) => a + (s.cost || 0), 0);
+  {
+    const total = services.reduce((a, s) => a + (s.downtime_hours || 0), 0);
     doc.setFont(undefined, "bold");
-    doc.text(`Total Biaya: ${formatRupiah(total)}`, 14, doc.lastAutoTable.finalY + 10);
+    doc.text(`Total Downtime: ${total} jam`, 14, doc.lastAutoTable.finalY + 10);
   }
 
   if (prevHistory && prevHistory.length > 0) {
