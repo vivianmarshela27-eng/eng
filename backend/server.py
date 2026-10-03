@@ -5,6 +5,7 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env', override=False)
 
 import os
+import math
 import logging
 import uuid
 import bcrypt
@@ -800,6 +801,86 @@ async def dashboard_stats(user: dict = Depends(get_current_user)):
     return result
 
 
+@api.get("/dashboard/downtime")
+async def dashboard_downtime(machine_id: Optional[str] = None, days: int = 30,
+                             bucket: str = "daily", user: dict = Depends(get_current_user)):
+    services = await db.services.find({}, {"_id": 0}).to_list(2000)
+    today = date.today()
+    start = today - timedelta(days=max(days, 1) - 1)
+
+    def in_range(sv):
+        d = parse_date(sv.get("date", ""))
+        return d is not None and start <= d <= today
+
+    period_services = [sv for sv in services if in_range(sv)]
+
+    # Downtime per mesin (semua mesin dalam periode) untuk bar chart
+    per_machine_map = {}
+    for sv in period_services:
+        mac = sv.get("machine_name", "-") or "-"
+        per_machine_map[mac] = per_machine_map.get(mac, 0) + (sv.get("downtime_hours", 0) or 0)
+    per_machine = [{"machine": k, "hours": round(v, 1)} for k, v in
+                   sorted(per_machine_map.items(), key=lambda x: -x[1]) if v > 0]
+
+    # Kurva difilter berdasarkan mesin terpilih
+    curve_services = [sv for sv in period_services
+                      if not machine_id or sv.get("machine_id") == machine_id]
+
+    def bucket_key(d):
+        if bucket == "monthly":
+            return d.strftime("%Y-%m")
+        if bucket == "weekly":
+            iso = d.isocalendar()
+            return f"{iso[0]}-W{iso[1]:02d}"
+        return d.strftime("%Y-%m-%d")
+
+    def bucket_label(d):
+        if bucket == "monthly":
+            return d.strftime("%b %y")
+        if bucket == "weekly":
+            return d.strftime("%d %b")
+        return d.strftime("%d/%m")
+
+    buckets, seen = [], set()
+    cur = start
+    while cur <= today:
+        k = bucket_key(cur)
+        if k not in seen:
+            seen.add(k)
+            buckets.append((k, bucket_label(cur)))
+        cur += timedelta(days=1)
+
+    agg = {k: {"downtime": 0.0, "used": 0.0} for k, _ in buckets}
+    for sv in curve_services:
+        d = parse_date(sv.get("date", ""))
+        if not d:
+            continue
+        k = bucket_key(d)
+        if k in agg:
+            agg[k]["downtime"] += sv.get("downtime_hours", 0) or 0
+            agg[k]["used"] += sv.get("repair_duration_hours", 0) or 0
+
+    curve = [{"label": label, "downtime": round(agg[k]["downtime"], 1),
+              "used": round(agg[k]["used"], 1)} for k, label in buckets]
+
+    repair_history = sorted(
+        [{"id": s.get("id"), "date": s.get("date", ""), "machine_id": s.get("machine_id", ""),
+          "machine_name": s.get("machine_name", ""), "problem": s.get("problem", ""),
+          "technician_name": s.get("technician_name", ""),
+          "repair_duration_hours": s.get("repair_duration_hours", 0) or 0,
+          "downtime_hours": s.get("downtime_hours", 0) or 0, "status": s.get("status", "")}
+         for s in curve_services],
+        key=lambda x: x.get("date", ""), reverse=True)[:50]
+
+    return {
+        "curve": curve,
+        "per_machine": per_machine,
+        "repair_history": repair_history,
+        "total_downtime": round(sum(c["downtime"] for c in curve), 1),
+        "total_used": round(sum(c["used"] for c in curve), 1),
+    }
+
+
 @api.get("/reports/summary")
 async def reports_summary(user: dict = Depends(get_current_user)):
     services = await db.services.find({}, {"_id": 0}).sort("date", -1).to_list(2000)
@@ -985,6 +1066,60 @@ async def seed_templates():
     await db.checksheet_templates.insert_many(templates)
 
 
+async def seed_downtime_demo():
+    meta = await db.meta.find_one({"key": "downtime_demo_seeded"})
+    if meta:
+        return
+    machines = await db.machines.find({}, {"_id": 0}).to_list(50)
+    techs = await db.technicians.find({}, {"_id": 0}).to_list(50)
+    if not machines:
+        return
+    import random
+    rng = random.Random(42)
+    # bobot downtime per mesin -> menghasilkan peringkat bar seperti mockup
+    weights = [1.6, 1.0, 0.5, 1.2][: len(machines)]
+    while len(weights) < len(machines):
+        weights.append(0.8)
+    problems = [
+        "Kebocoran hidrolik pada aktuator", "Overheat pada motor penggerak",
+        "Bearing aus & bising", "Sensor proximity error", "Belt conveyor selip",
+        "Heater zone tidak stabil", "Tekanan oli drop", "Gangguan panel listrik",
+    ]
+    today = date.today()
+    docs = []
+    for day in range(30):
+        d = today - timedelta(days=day)
+        # jumlah kejadian per hari mengikuti pola bergelombang
+        base = 1 + (math.sin(day / 3.0) + 1) * 1.5
+        n_events = max(0, int(round(base + rng.uniform(-0.6, 1.2))))
+        for _ in range(n_events):
+            mi = rng.choices(range(len(machines)), weights=weights)[0]
+            m = machines[mi]
+            downtime = round(rng.uniform(0.5, 6.0) * weights[mi] / 1.2, 1)
+            repair = round(downtime * rng.uniform(0.45, 0.85), 1)
+            start_h = rng.randint(6, 14)
+            rs = datetime.combine(d, datetime.min.time()).replace(hour=start_h)
+            re = rs + timedelta(hours=repair)
+            ds = rs - timedelta(minutes=rng.randint(10, 60))
+            de = ds + timedelta(hours=downtime)
+            tech = rng.choice(techs) if techs else {"id": "", "name": ""}
+            docs.append({
+                "id": str(uuid.uuid4()), "machine_id": m["id"], "machine_name": m["name"],
+                "date": d.isoformat(), "service_type": "perbaikan",
+                "problem": rng.choice(problems), "action": "Perbaikan & penggantian komponen",
+                "technician_id": tech.get("id", ""), "technician_name": tech.get("name", ""),
+                "operator_name": "", "used_parts": [],
+                "downtime_hours": downtime, "repair_duration_hours": repair,
+                "repair_start": rs.isoformat(timespec="minutes"), "repair_end": re.isoformat(timespec="minutes"),
+                "downtime_start": ds.isoformat(timespec="minutes"), "downtime_end": de.isoformat(timespec="minutes"),
+                "status": "selesai", "operator_signature": "", "technician_signature": "",
+                "photos": [], "created_at": now_iso(),
+            })
+    if docs:
+        await db.services.insert_many(docs)
+    await db.meta.update_one({"key": "downtime_demo_seeded"}, {"$set": {"key": "downtime_demo_seeded"}}, upsert=True)
+
+
 @app.on_event("startup")
 async def startup():
     await db.users.create_index("username", unique=True)
@@ -1002,6 +1137,7 @@ async def startup():
     await seed_admin()
     await seed_data()
     await seed_templates()
+    await seed_downtime_demo()
     try:
         init_storage()
         logger.info("Storage initialized")
