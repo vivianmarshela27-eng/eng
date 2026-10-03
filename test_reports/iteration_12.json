@@ -1,0 +1,23 @@
+{
+  "summary": "Validated the SATRIA ENGINEERING downtime-analytics/repair-duration/preventive-by-type feature set. Backend 12/12 pytest (test_downtime_charts.py): POST /api/services with repair_start=2026-06-02T08:00/repair_end=11:30 and downtime_start=07:30/downtime_end=13:00 auto-computes repair_duration_hours=3.5 and downtime_hours=5.5, PUT recomputes to 1.25/2.0, GET persists all datetime fields, GET /api/dashboard/stats returns downtime_by_machine (sorted desc), downtime_by_machine_month (pivot), downtime_machine_series, and repair_history (with problem/downtime_hours/repair_duration_hours, test service appears correctly), GET /api/reports/summary returns preventive_by_type as [{type,count}], operator POST/PUT/DELETE /api/services all 403. Frontend admin: Dashboard shows downtime-chart-card (LineChart), downtime-bar-card (BarChart), repair-history-card; /repairs headers are exactly [Tanggal,Mesin,Jenis,Teknisi,Bukti TTD,Foto,Waktu (jam),Perbaikan (jam),Status,Aksi]; add-service form has 4 datetime-local inputs (service-repair-start/-end, service-downtime-start/-end) and the old service-downtime-input number field is gone; after saving a perbaikan with the 4 datetimes the services row shows downtime-service=5.5 jam and repairdur-service=3.5 jam, Dashboard repair-history-<id> row appears with 5.5/3.5. /reports shows preventive-bytype-card BarChart (1 bar from the GOLIVE filled checksheet) and export-pdf-button. Operator sees identical Dashboard cards and the Reports preventive-bytype-card. Test service was cleaned up via DELETE.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_downtime_charts.py",
+    "/app/test_reports/pytest/downtime_charts.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 1041 lines - still exceeds the 700-line split guideline; services/dashboard/reports routers should be moved out into separate modules.",
+    "ServiceIn.repair_duration_hours / downtime_hours have no Field(ge=0) validation; a client-supplied negative value when the datetime pair is empty would be persisted as-is.",
+    "apply_durations silently returns 0 when datetime parsing fails (hours_between swallows exception) - consider logging/warning so bad input isn't masked.",
+    "dashboard_stats loads ALL services/schedules/machines/spareparts into memory and recomputes on every call - fine at seed scale but add pagination/aggregation if dataset grows."
+  ],
+  "updated_files": ["/app/backend/tests/test_downtime_charts.py"],
+  "success_rate": {"backend": "100% (12/12)", "frontend": "100%"},
+  "test_credentials": "admin/Admin#2026, operator/Operator#2026",
+  "seed_data_creation": "test_downtime_charts.py creates one perbaikan service and deletes it in TestCleanup.test_zzz_cleanup; the Playwright flow also deletes its created service via DELETE /api/services/{id}. No residual test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "New testids: downtime-chart-card, downtime-bar-card, repair-history-card, repair-history-<id> (Dashboard); service-repair-start/-end, service-downtime-start/-end (Repairs form); downtime-service-<id> + repairdur-service-<id> (Repairs table cells); preventive-bytype-card (Reports). Repairs column order (10 cols): Tanggal, Mesin, Jenis, Teknisi, Bukti TTD, Foto, Waktu (jam), Perbaikan (jam), Status, Aksi. Backend auto-computes repair_duration_hours and downtime_hours from datetime-local strings on both POST and PUT via apply_durations(); hours_between returns round(diff,2) and 0 if diff<=0 or parse fails. preventive_by_type counts filled checksheets grouped by schedule.maintenance_type; currently 1 entry from the seeded GOLIVE schedule."
+}
