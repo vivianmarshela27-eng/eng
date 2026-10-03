@@ -45,3 +45,12 @@ Website sistem informasi pemeliharaan mesin (Bahasa Indonesia) dengan fitur: Man
   - Operator + technician names & digital signatures on the checksheet; exported to **BAP Checksheet PDF** (`generateChecksheetPDF`).
   - User (viewer) sees checksheet read-only; can still Cetak BAP.
   - Components: `ChecksheetDialog.js`, `TemplateManager.js`. Verified via testing agent (iteration_2, 100% pass).
+
+## Implemented — 2026-10-03 (DOWNTIME MONITOR)
+- Redesigned Dashboard downtime section into a dark **DOWNTIME MONITOR** panel (`/app/frontend/src/components/DowntimeMonitor.js`).
+  - Downtime curve (area) with **Harian/Mingguan/Bulanan** toggle; two series: Total Downtime (jam) = `downtime_hours`, Waktu Dipakai (jam) = `repair_duration_hours`.
+  - Horizontal **Downtime per Mesin** bar chart, color-ranked (red/amber/green); click bar filters repair-history table.
+  - Machine filter + period (7/30/90 Hari) dropdowns; LIVE badge with 15s auto-refresh.
+- Backend: `GET /api/dashboard/downtime?days=&bucket=&machine_id=` aggregates curve/per-machine/history (`server.py`).
+- One-time demo seed `seed_downtime_demo()` (guarded by `db.meta` key `downtime_demo_seeded`) populates recent perbaikan records so charts render.
+- Verified: testing agent iteration_13 — backend 10/10, all frontend scenarios pass. Backend tests at `/app/backend/tests/test_downtime_monitor.py`.

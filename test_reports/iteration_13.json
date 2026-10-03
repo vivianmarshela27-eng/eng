@@ -1,0 +1,26 @@
+{
+  "summary": "Tested the new DOWNTIME MONITOR panel on /dashboard end-to-end. Backend endpoint /api/dashboard/downtime verified via 10 pytest cases (daily/weekly/monthly bucket sizing, days=7/30/90 shapes, per_machine sorted desc, machine_id filters curve+history but NOT per_machine, totals consistent with curve, operator read access, unauthenticated rejected). Frontend Playwright flow verified: admin login, DOWNTIME MONITOR renders with populated curve + per-machine bars + repair history, Harian/Mingguan/Bulanan bucket toggles, period dropdown 7/30/90 Hari, machine dropdown (Semua Mesin + GOLIVE variants), bar click filters history and displays data-testid=clear-bar-filter chip which clears correctly, refresh button works, LIVE badge visible, 'Status Mesin' and KPI cards still render. No console errors besides expected pre-login 401 on /auth/me.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_downtime_monitor.py",
+    "/app/test_reports/pytest/downtime_monitor_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is ~1177 lines — consider splitting into routers (/dashboard, /services, /auth) for maintainability.",
+    "dashboard_downtime: machine_id filter uses equality against sv.machine_id snapshot stored on service. Fine today but if a machine is renamed/replaced, per_machine aggregation uses machine_name which may desync from id — minor consistency note.",
+    "Front-end DowntimeMonitor auto-refresh (15s): confirmed in code via useEffect+interval; no leak observed on manual check but ensure interval cleared on unmount (already done)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (10/10)", "frontend": "100% of listed scenarios"},
+  "test_credentials": "admin / Admin#2026 (admin), operator / Operator#2026 (user)",
+  "seed_data_creation": "Did not create new seed data; relied on pre-seeded downtime demo (seed guarded by db.meta key 'downtime_demo_seeded').",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "DOWNTIME MONITOR fully working. Backend test file: /app/backend/tests/test_downtime_monitor.py (10 tests, all green). The period-select and machine-select are shadcn/Radix comboboxes — not <select>, so use page.click + get_by_role('option', name=...) in Playwright. The per-machine Recharts bars are selectable via '.recharts-bar-rectangle' selector inside [data-testid=downtime-permachine-card]. Machines in DB are GOLIVE and 'GOLIVE ' (trailing space) — minor data hygiene issue, flag to main agent if cleanup desired."
+}
