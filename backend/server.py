@@ -931,6 +931,9 @@ async def startup():
     await db.services.create_index("id", unique=True)
     await db.checksheet_templates.create_index("id", unique=True)
     await db.files.create_index("id", unique=True)
+    # One-time migration: drop legacy service cost, default downtime_hours
+    await db.services.update_many({"cost": {"$exists": True}}, {"$unset": {"cost": ""}})
+    await db.services.update_many({"downtime_hours": {"$exists": False}}, {"$set": {"downtime_hours": 0}})
     await seed_admin()
     await seed_data()
     await seed_templates()

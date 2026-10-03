@@ -1,0 +1,35 @@
+{
+  "summary": "Validated the full-stack 'remove cost + add downtime_hours' refactor. Backend (10/13 pytest in test_downtime.py pass): GET /api/dashboard/stats returns total_downtime (number) + downtime_trend (array of {month,hours}) and has NO total_cost/monthly_cost for both admin and operator; POST/PUT /api/services accept and persist downtime_hours (3.5 → 7.25 verified) and no longer require a cost field (payload without cost returns 200); GET /api/services returns the field on newly created rows; operator POST/PUT/DELETE /api/services all 403; GET /api/reports/summary returns services + preventive data. Frontend admin: Dashboard shows the stat-total-downtime card ('TOTAL DOWNTIME SERVIS') + the downtime-chart-card ('KURVA DOWNTIME MESIN') LineChart; no stat-total-cost card and no 'Total Biaya' anywhere. /repairs table headers are exactly [Tanggal, Mesin, Jenis, Teknisi, Bukti TTD, Foto, Waktu (jam), Status, Aksi] (no Biaya); the add-service form has service-downtime-input ('Waktu Dipakai') and no 'Biaya' input. /reports Riwayat Servis has 'Waktu (jam)' column + 'Total Downtime' in Ringkasan; no 'Total Biaya' and no 'Informasi biaya...' note. Ekspor PDF (Laporan-Servis-*.pdf) and the service BAP PDF (BAP-GOLIVE-*.pdf) both download with zero JS errors. Frontend operator: identical Dashboard (downtime card + chart, no cost), /repairs table has the same 9 headers (no admin action buttons), no Biaya column.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/services, /api/reports/summary", "issue": "Legacy seeded service 'GOLIVE' created before this refactor still has a stale 'cost': 0.0 field and no 'downtime_hours' field in MongoDB. The schema is correct for new records; the old doc leaks the removed 'cost' key through the generic {_id:0} projection and causes 3 strict assertions to fail. Suggested one-time migration: db.services.update_many({}, {'$unset': {'cost': ''}, '$set': {'downtime_hours': {'$ifNull': ['$downtime_hours', 0]}}}) or a startup hook that unsets 'cost' and defaults 'downtime_hours'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_downtime.py",
+    "/app/test_reports/pytest/downtime.xml"
+  ],
+  "action_items": [
+    "Optional: add a one-time migration in startup() to $unset legacy 'cost' field and default missing 'downtime_hours' to 0 on existing service documents so GET /api/services and /api/reports/summary are schema-clean for pre-existing data."
+  ],
+  "critical_code_review_comments": [
+    "server.py now 973 lines - still exceeds the 700-line split guideline; splitting services/files/schedules routers remains outstanding (same note as iteration_10).",
+    "No migration step for legacy service documents when the cost field was removed and downtime_hours added - old docs still carry 'cost' and lack 'downtime_hours'. Frontend works via '|| 0' but a backend $unset migration would avoid returning dead fields.",
+    "ServiceIn.downtime_hours is typed float with default 0 but has no non-negative validation (Field(ge=0) would prevent negative hours ending up in the Kurva Downtime chart)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_downtime.py"
+  ],
+  "success_rate": {"backend": "77% (10/13; 3 fail only due to legacy seed doc, feature code is correct)", "frontend": "100%"},
+  "test_credentials": "admin/Admin#2026, operator/Operator#2026",
+  "seed_data_creation": "test_downtime.py creates two services via admin POST and deletes both at the end of the class (test_create_service_with_downtime -> test_zzz_cleanup, and test_create_without_cost_field_succeeds deletes inline). No residual test data.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Testids used: stat-total-downtime, downtime-chart-card (Dashboard); service-downtime-input (Repairs form), downtime-service-<id> (Repairs table cell); pdf-service-<id> (BAP PDF). Repairs table column order confirmed: [Tanggal, Mesin, Jenis, Teknisi, Bukti TTD, Foto, Waktu (jam), Status, Aksi] — identical for admin and operator. Reports Ringkasan now shows 'Total Downtime' instead of 'Total Biaya' and the old 'Informasi biaya...' footer note is gone. Legacy GOLIVE service document in MongoDB still has 'cost' field and no 'downtime_hours' - will fail strict schema assertions until a migration runs; the frontend tolerates it. PDFs are jsPDF client-side and downloaded without JS errors."
+}
