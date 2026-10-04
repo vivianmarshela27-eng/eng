@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, ClipboardList, CornerDownRight } from "lucide-react";
+import { Plus, Trash2, Pencil, ClipboardList, CornerDownRight, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 const emptyTpl = { name: "", machine_type: "", items: [] };
@@ -39,6 +39,19 @@ export default function TemplateManager({ open, onOpenChange, templates, onChang
     catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
   };
 
+  const copyTemplate = async (t) => {
+    try {
+      const payload = {
+        name: `${t.name} (Salinan)`,
+        machine_type: t.machine_type || "",
+        items: (t.items || []).map((i) => ({ ...i })),
+      };
+      await api.post("/checksheet-templates", payload);
+      toast.success("Template disalin");
+      onChanged && onChanged();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="template-manager-dialog">
@@ -59,6 +72,7 @@ export default function TemplateManager({ open, onOpenChange, templates, onChang
                   </div>
                   <div>
                     <Button variant="ghost" size="icon" onClick={() => startEdit(t)} data-testid={`template-edit-${t.id}`}><Pencil className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => copyTemplate(t)} data-testid={`template-copy-${t.id}`} title="Salin template"><Copy className="w-4 h-4 text-sky-600" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => remove(t.id)} data-testid={`template-delete-${t.id}`}><Trash2 className="w-4 h-4 text-rose-600" /></Button>
                   </div>
                 </div>
