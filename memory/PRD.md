@@ -54,3 +54,8 @@ Website sistem informasi pemeliharaan mesin (Bahasa Indonesia) dengan fitur: Man
 - Backend: `GET /api/dashboard/downtime?days=&bucket=&machine_id=` aggregates curve/per-machine/history (`server.py`).
 - One-time demo seed `seed_downtime_demo()` (guarded by `db.meta` key `downtime_demo_seeded`) populates recent perbaikan records so charts render.
 - Verified: testing agent iteration_13 — backend 10/10, all frontend scenarios pass. Backend tests at `/app/backend/tests/test_downtime_monitor.py`.
+
+## Implemented — 2026-10-04 (Catatan Servis: multi-teknisi & merge sparepart)
+- Form servis (/repairs) kini mendukung **lebih dari satu teknisi**: picker menambahkan teknisi sebagai chip (hapus per chip); nama digabung ke `technician_name` (koma) + disimpan sebagai array `technicians`. Backward-compatible dengan record teknisi tunggal lama.
+- Input sparepart kini **digabung bila sama**: menambah sparepart yang sama menjumlahkan qty dalam satu baris (bukan baris duplikat).
+- Backend `ServiceIn` menambah `technicians: List[TechnicianRef]`. Teruji: testing agent iteration_14 — frontend 100%, tanpa isu.
