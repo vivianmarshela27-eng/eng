@@ -519,6 +519,11 @@ class UsedPart(BaseModel):
     qty: int
 
 
+class TechnicianRef(BaseModel):
+    id: str = ""
+    name: str = ""
+
+
 class ServicePhoto(BaseModel):
     file_id: str
     filename: Optional[str] = ""
@@ -534,6 +539,7 @@ class ServiceIn(BaseModel):
     action: Optional[str] = ""
     technician_id: Optional[str] = ""
     technician_name: Optional[str] = ""
+    technicians: List[TechnicianRef] = []
     operator_name: Optional[str] = ""
     used_parts: List[UsedPart] = []
     downtime_hours: float = 0

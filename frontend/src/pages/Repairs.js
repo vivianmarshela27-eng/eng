@@ -26,6 +26,7 @@ const photoUrl = (p) => `${API}/files/${p.file_id}/download`;
 const empty = {
   machine_id: "", machine_name: "", date: new Date().toISOString().slice(0, 10),
   service_type: "preventif", problem: "", action: "", technician_id: "", technician_name: "",
+  technicians: [],
   operator_name: "", used_parts: [], downtime_hours: 0, repair_duration_hours: 0,
   repair_start: "", repair_end: "", downtime_start: "", downtime_end: "", status: "selesai",
   operator_signature: "", technician_signature: "", photos: [],
@@ -43,6 +44,7 @@ export default function Repairs() {
   const [delId, setDelId] = useState(null);
   const [partSel, setPartSel] = useState("");
   const [partQty, setPartQty] = useState(1);
+  const [techSel, setTechSel] = useState("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [gallery, setGallery] = useState(null);
   const [lightbox, setLightbox] = useState(null);
@@ -57,7 +59,13 @@ export default function Repairs() {
   }, []);
 
   const openNew = () => { setForm(empty); setEditId(null); setOpen(true); };
-  const openEdit = (m) => { setForm({ ...empty, ...m, used_parts: m.used_parts || [], photos: m.photos || [] }); setEditId(m.id); setOpen(true); };
+  const openEdit = (m) => {
+    const techList = (m.technicians && m.technicians.length)
+      ? m.technicians
+      : (m.technician_id ? [{ id: m.technician_id, name: m.technician_name || "" }] : []);
+    setForm({ ...empty, ...m, technicians: techList, used_parts: m.used_parts || [], photos: m.photos || [] });
+    setEditId(m.id); setOpen(true);
+  };
 
   const onPickPhoto = async (e) => {
     const file = e.target.files?.[0];
@@ -81,21 +89,36 @@ export default function Repairs() {
   };
   const removePhoto = (idx) => setForm((f) => ({ ...f, photos: f.photos.filter((_, i) => i !== idx) }));
 
+  const addTech = (id) => {
+    const t = techs.find((x) => x.id === id);
+    if (!t) return;
+    if ((form.technicians || []).some((x) => x.id === id)) { setTechSel(""); return; }
+    setForm({ ...form, technicians: [...(form.technicians || []), { id: t.id, name: t.name }] });
+    setTechSel("");
+  };
+  const removeTech = (id) => setForm({ ...form, technicians: (form.technicians || []).filter((x) => x.id !== id) });
+
   const addPart = () => {
     const p = parts.find((x) => x.id === partSel);
     if (!p) return;
-    setForm({ ...form, used_parts: [...form.used_parts, { sparepart_id: p.id, name: p.name, qty: Number(partQty) }] });
+    const qty = Number(partQty) || 1;
+    const idx = form.used_parts.findIndex((x) => x.sparepart_id === p.id);
+    const used_parts = idx >= 0
+      ? form.used_parts.map((x, i) => (i === idx ? { ...x, qty: x.qty + qty } : x))
+      : [...form.used_parts, { sparepart_id: p.id, name: p.name, qty }];
+    setForm({ ...form, used_parts });
     setPartSel(""); setPartQty(1);
   };
   const removePart = (idx) => setForm({ ...form, used_parts: form.used_parts.filter((_, i) => i !== idx) });
 
   const save = async () => {
     const machine = machines.find((x) => x.id === form.machine_id);
-    const tech = techs.find((x) => x.id === form.technician_id);
+    const techList = form.technicians || [];
     const payload = {
       ...form,
       machine_name: machine?.name || form.machine_name,
-      technician_name: tech?.name || form.technician_name,
+      technician_name: techList.map((t) => t.name).join(", ") || form.technician_name,
+      technician_id: techList[0]?.id || "",
     };
     try {
       if (editId) { await api.put(`/services/${editId}`, payload); toast.success("Catatan servis diperbarui"); }
@@ -220,14 +243,29 @@ export default function Repairs() {
             </div>
             <div className="col-span-2"><Label>Deskripsi Masalah</Label><Textarea value={form.problem} onChange={(e) => setForm({ ...form, problem: e.target.value })} data-testid="service-problem-input" /></div>
             <div className="col-span-2"><Label>Tindakan yang Dilakukan</Label><Textarea value={form.action} onChange={(e) => setForm({ ...form, action: e.target.value })} data-testid="service-action-input" /></div>
-            <div>
-              <Label>Teknisi</Label>
-              <Select value={form.technician_id} onValueChange={(v) => setForm({ ...form, technician_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Pilih teknisi" /></SelectTrigger>
-                <SelectContent>{techs.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent>
+            <div className="col-span-2">
+              <Label>Teknisi (bisa lebih dari satu)</Label>
+              <Select value={techSel} onValueChange={addTech}>
+                <SelectTrigger data-testid="service-technician-select"><SelectValue placeholder="Pilih teknisi" /></SelectTrigger>
+                <SelectContent>
+                  {techs.filter((t) => !(form.technicians || []).some((x) => x.id === t.id)).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
+              <div className="flex flex-wrap gap-2 mt-2" data-testid="service-technician-chips">
+                {(form.technicians || []).length === 0 && <span className="text-xs text-slate-400">Belum ada teknisi dipilih.</span>}
+                {(form.technicians || []).map((t) => (
+                  <span key={t.id} className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300 text-sm px-3 py-1" data-testid={`tech-chip-${t.id}`}>
+                    {t.name}
+                    <button type="button" onClick={() => removeTech(t.id)} className="hover:text-rose-600" data-testid={`remove-tech-${t.id}`}>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
-            <div><Label>Nama Operator</Label><Input value={form.operator_name} onChange={(e) => setForm({ ...form, operator_name: e.target.value })} data-testid="service-operator-input" /></div>
+            <div className="col-span-2"><Label>Nama Operator</Label><Input value={form.operator_name} onChange={(e) => setForm({ ...form, operator_name: e.target.value })} data-testid="service-operator-input" /></div>
             <div className="col-span-2 border-t pt-4 grid grid-cols-2 gap-3">
               <div className="col-span-2"><Label className="text-xs uppercase tracking-wider text-slate-500">Durasi Perbaikan (mulai → selesai)</Label></div>
               <div><Label>Mulai Perbaikan</Label><Input type="datetime-local" value={form.repair_start || ""} onChange={(e) => setForm({ ...form, repair_start: e.target.value })} data-testid="service-repair-start" /></div>
